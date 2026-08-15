@@ -14,16 +14,20 @@ return new class extends Migration
         Schema::create('produk', function (Blueprint $table) {
             $table->id();
             $table->string('nama_produk');
-            $table->string('deskripsi');
+            $table->string('deskripsi')->nullable();
             $table->decimal('harga', 10, 2);
-            $table->integer('stok');
-            $table->unsignedBigInteger('kategori_id');
-            $table->unsignedBigInteger('pemasok_id');
+            $table->string('sku')->unique();
+            $table->integer('stok')->default(0);
+            $table->integer('stok_minimal')->default(2);
             $table->timestamps();
 
             // Foreign key constraints
-            $table->foreign('kategori_id')->references('id')->on('kategori')->onDelete('cascade');
-            $table->foreign('pemasok_id')->references('id')->on('pemasok')->onDelete('cascade');
+            $table->foreignId('kategori_id')->constrained('kategori')->onDelete('cascade');
+            $table->foreignId('pemasok_id')->constrained('pemasok')->onDelete('cascade');
+
+            // Index
+            $table->index('kategori_id');
+            $table->index('pemasok_id');
         });
     }
 
