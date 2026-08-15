@@ -117,6 +117,12 @@ Manajemen-Inventory/
 │   ├── css/
 │   │   └── app.css
 │   ├── js/
+│   │   ├── components/
+│   │   │   ├── includes/
+│   │   │   ├── pages/
+│   │   │   └── ui/
+│   │   ├── layouts/
+│   │   ├── hooks/
 │   │   ├── app.jsx
 │   │   └── app.tsx
 │   └── views/

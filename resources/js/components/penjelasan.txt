@@ -1,0 +1,1 @@
+Folder (components, hooks, layouts) ini digunakan untuk komponen yang akan dipakai secara berulang-ulang tanpa perlu membuat yang baru secara terus menerus
