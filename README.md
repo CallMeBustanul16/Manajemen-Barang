@@ -7,6 +7,78 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
+# 🏢 Manajemen Inventory
+
+Proyek **Manajemen Inventory** adalah aplikasi web untuk mengelola data barang, stok, supplier, dan laporan. Dibangun dengan **Laravel 11** sebagai backend dan **React** sebagai frontend, dengan dukungan animasi interaktif.
+
+---
+
+## 📁 Struktur Folder Penting
+
+Manajemen-Barang/
+├── app/ # Core Laravel (Models, Controllers, Providers)
+│ ├── Http/ # Controllers, Middleware, Requests
+│ ├── Models/ # Model Eloquent
+│ └── Providers/ # Service Providers
+├── bootstrap/ # Bootstrapping Laravel
+│ ├── cache/ # Cache Konfigurasi & Route
+│ ├── app.php # Inisialisasi Aplikasi
+│ └── providers.php # Daftar Service Providers
+├── config/ # Semua Konfigurasi Laravel
+│ ├── app.php # Konfigurasi Aplikasi (timezone, locale, dll)
+│ ├── auth.php # Konfigurasi Autentikasi
+│ ├── cache.php # Konfigurasi Cache
+│ ├── database.php # Konfigurasi Database
+│ ├── filesystems.php # Konfigurasi Filesystem
+│ ├── logging.php # Konfigurasi Logging
+│ ├── mail.php # Konfigurasi Email
+│ ├── queue.php # Konfigurasi Queue
+│ ├── services.php # Konfigurasi Service Eksternal
+│ └── session.php # Konfigurasi Session
+├── database/ # Database
+│ ├── factories/ # Factory untuk Seeder
+│ ├── migrations/ # File Migrasi Database
+│ ├── seeders/ # Seeder untuk Data Dummy
+│ ├── .gitignore # Ignore database.sqlite
+│ └── database.sqlite # File Database SQLite (jika pakai)
+├── node_modules/ # Dependency JavaScript (TIDAK di-commit ke Git)
+├── public/ # Public Assets (Entry Point Laravel)
+│ ├── .htaccess # Konfigurasi Apache
+│ ├── favicon.ico # Icon Browser
+│ ├── fonts-manifest.dev.json
+│ ├── hot # File untuk Vite HMR
+│ ├── index.php # Entry Point Laravel
+│ └── robots.txt # SEO
+├── resources/ # Sumber Daya Frontend
+│ ├── css/
+│ │ └── app.css # Tailwind CSS v4
+│ ├── js/
+│ │ ├── app.jsx # 🚀 Entry Point React (SEMUA LIBRARY DI SINI)
+│ │ └── app.tsx # (opsional)
+│ └── views/
+│ ├── app.blade.php # Layout Blade (jika dipakai)
+│ └── welcome.blade.php # Halaman Utama (container React)
+├── routes/ # Routing Laravel
+│ ├── console.php # Command Console
+│ └── web.php # Route Web (React di-serve dari sini)
+├── storage/ # Storage Laravel (logs, cache, files)
+├── tests/ # Unit Test & Feature Test
+├── vendor/ # Dependency PHP (TIDAK di-commit ke Git)
+├── .editorconfig # Konfigurasi Editor
+├── .env # Environment Variables (JANGAN di-commit!)
+├── .env.example # Template Environment Variables
+├── .gitattributes
+├── .gitignore # Daftar file/folder yang di-ignore Git
+├── .npmrc
+├── artisan # CLI Laravel
+├── composer.json # Dependency PHP (Laravel)
+├── composer.lock # Lock Dependency PHP
+├── package-lock.json # Lock Dependency JavaScript
+├── package.json # Dependency JavaScript (React, dll)
+├── phpunit.xml # Konfigurasi Testing PHPUnit
+├── README.md # File ini
+└── vite.config.js # Konfigurasi Vite (Build Tool)
+
 ## About Laravel
 
 Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
@@ -40,6 +112,68 @@ php artisan boost:install
 ```
 
 Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+
+
+---
+
+## 📦 Library & Tools yang Digunakan
+
+### Backend (PHP / Laravel)
+| Library | Fungsi |
+|---------|--------|
+| **Laravel 11** | Framework PHP utama |
+| **PHPUnit** | Testing Framework (bawaan Laravel) |
+| **SQLite / MySQL** | Database (bisa pakai SQLite default) |
+
+### Frontend (JavaScript / React)
+| Library | Fungsi | Versi |
+|---------|--------|-------|
+| **React 18** | UI Library | ^18.2.0 |
+| **React DOM** | Render React ke DOM | ^18.2.0 |
+| **Tailwind CSS v4** | CSS Framework Utility-first | ^4.0.0 |
+| **Vite** | Build Tool & Development Server | ^5.0.0 |
+| **GSAP** | Animasi Profesional | ^3.12.5 |
+| **@gsap/react** | Hook GSAP untuk React | ^2.0.0 |
+| **AnimeJS** | Animasi JavaScript Ringan | ^3.2.1 |
+| **AOS** | Animasi Saat Scroll | ^2.3.4 |
+| **SweetAlert2** | Popup/Alert Interaktif | ^11.10.0 |
+
+---
+
+## 🚀 Cara Menjalankan Project di Komputer Rekanmu
+
+### Prasyarat
+Pastikan sudah terinstall:
+- **PHP** ≥ 8.1 → `php -v`
+- **Composer** → `composer -v`
+- **Node.js** ≥ 18 → `node -v`
+- **Git** → `git -v`
+
+### Langkah Instalasi
+
+#### 1. Clone Repository
+```bash
+- git clone https://github.com/CallMeBustanul16/Manajemen-Barang
+- cd Manajemen-Inventory
+
+#### 2. Install Depedency PHP (Laravel)
+- composer install
+
+#### 3. Setup Environment (.env)
+- cp .env.example .env
+- php artisan key:generate
+### (Aturan: Jangan commit .env ke Git karena isinya berbeda tiap perangkat.)
+
+#### 4. Install Depedency javaScript
+- npm install
+### (node_modules akan otomatis terbuat di folder ini.)
+
+#### 5. Jalankan Development Server
+- Terminal 1 – Vite (Build Asset)
+npm run dev
+
+- Terminal 2 – Laravel Server
+php artisan serve
 
 ## Contributing
 
