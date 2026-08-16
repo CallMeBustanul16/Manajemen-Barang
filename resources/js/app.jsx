@@ -1,14 +1,18 @@
 // Kumpulan Library
+// import './bootstrap';
+import '../css/app.css';
+import AOS from 'aos';
+import 'aos/dist/aos.css'; 
 import React, { useEffect } from 'react';
 import { createRoot } from 'react-dom/client';
 import ReactDOM from 'react-dom/client';
 import '../css/app.css';
-import AOS from 'aos';
-import 'aos/dist/aos.css';
 import Swal from 'sweetalert2';
 import gsap from 'gsap';
 import { useGSAP } from '@gsap/react';
 import * as anime from 'animejs';
+
+AOS.init();
 
 const container = document.getElementById('app');
 
@@ -50,7 +54,7 @@ function App() {
                 Manajemen Inventory
             </h1>
             <p className="mt-4 text-gray-600" data-aos="fade-up" data-aos-delay="200">
-                React + Laravel + Animasi keren!
+                React + Laravel + Animasi
             </p>
             <div className="box w-20 h-20 bg-red-500 mt-8 rounded"></div>
             <button 
