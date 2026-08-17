@@ -1,8 +1,20 @@
 <?php
 use Illuminate\Support\Facades\Route;
+use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KategoriControllers;
 use App\Http\Controllers\Api\PemasokControllers;
 use App\Http\Controllers\Api\ProdukControllers;
+
+// Route Auth
+Route::post('\register', [AuthController::class, 'register']);
+Route::post('\login', [AuthController::class, 'login']);
+Route::post('\forgotPassword', [AuthController::class, 'forgotPassword']);
+Route::post('\resetPassword', [AuthController::class, 'resetPassword']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+    Route::get('/user', [AuthController::class, 'user']);
+});
 
 // Route API untuk kategori, pemasok, dan produk
 Route::apiResource('kategori', KategoriControllers::class);
