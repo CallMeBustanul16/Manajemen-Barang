@@ -34,6 +34,7 @@ class AuthController extends Controller
         ]);
 
         return response()->json([
+            'success' => true,
             'message' => 'Selamat! Registrasi Anda telah berhasil!🥳',
             'user' => $user
         ], 201);

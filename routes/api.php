@@ -6,10 +6,10 @@ use App\Http\Controllers\Api\PemasokControllers;
 use App\Http\Controllers\Api\ProdukControllers;
 
 // Route Auth
-Route::post('\register', [AuthController::class, 'register']);
-Route::post('\login', [AuthController::class, 'login']);
-Route::post('\forgotPassword', [AuthController::class, 'forgotPassword']);
-Route::post('\resetPassword', [AuthController::class, 'resetPassword']);
+Route::post('/register', [AuthController::class, 'register']);
+Route::post('/login', [AuthController::class, 'login']);
+Route::post('/forgotPassword', [AuthController::class, 'forgotPassword']);  
+Route::post('/resetPassword', [AuthController::class, 'resetPassword']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);

@@ -15,16 +15,19 @@ import { useGSAP } from '@gsap/react';
 import * as anime from 'animejs';
 
 // Import Halaman
-import Login from './pages/Auth/Login' ;
-import Register from './pages/Auth/Register' ;
-import Dashboard from './pages/Dashboard' ;
-import MainLayout from './layouts/MainLayout' ;
+import Login from './pages/Auth/Login';
+import Register from './pages/Auth/Register';
+import Dashboard from './pages/Dashboard';
+import MainLayout from './layouts/MainLayout';
+
+// Jika membutuhkan PrivateRoute, maka uncomment code dibawah
+import PrivateRoute from './components/PrivateRoute';
 
 // Proteksi Route (Private)
-function privateRoute({ children }) {
-    const token = localStorage.getItem('token');
-    return token ? children : <Navigate to="/login" />;
-}
+// function privateRoute({ children }) {
+//     const token = localStorage.getItem('token');
+//     return token ? children : <Navigate to="/login" />;
+// }
 
 function App() {
     useEffect(() => {
@@ -64,6 +67,8 @@ function App() {
 // root.render(<App />);
 
 const root = document.getElementById('root');
-if (root) {
-    createRoot(root).render(<App />);
+if (!window.reactRoot) {
+  window.reactRoot = ReactDOM.createRoot(document.getElementById('root'));
 }
+
+window.reactRoot.render(<App />);
