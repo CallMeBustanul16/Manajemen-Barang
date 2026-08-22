@@ -15,10 +15,12 @@ import { useGSAP } from '@gsap/react';
 import * as anime from 'animejs';
 
 // Import Halaman
-import Login from './pages/Auth/Login';
-import Register from './pages/Auth/Register';
-import Dashboard from './pages/Dashboard';
+import Login from './pages/Auth/login';
+import Register from './pages/Auth/register';
+import Dashboard from './pages/dashboard';
 import MainLayout from './layouts/MainLayout';
+import ForgotPassword from './pages/Auth/forgotPassword';
+import ResetPassword from './pages/Auth/resetPassword';
 
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
@@ -40,6 +42,8 @@ function App() {
                 {/* Auth Routes (Tanpa Layout) */}
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
+                <Route path="/forgot-password" element={<ForgotPassword />} />
+                <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* Protected Routes (Dengan Layout) */}
                 <Route path="/" element={

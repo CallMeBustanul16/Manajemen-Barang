@@ -82,12 +82,8 @@ class AuthController extends Controller
 
         return response()->json([
             'message' => 'Kamu telah berhasil login ke dalam akun!',
-            'user' => [
-                'id' => $user->id,
-                'name' => $user->name,
-                'email' => $user->email,
-            ],
-            'token' => $token
+            'user' => $user,
+            'token' => $token,
         ]);
     }
 
@@ -119,6 +115,7 @@ class AuthController extends Controller
 
         if ($status === Password::RESET_LINK_SENT) {
             return response()->json([
+                'success' => true,
                 'message' => 'Link untuk mereset password telah dikirim ke email Kamu'
             ]);
         }
@@ -152,6 +149,7 @@ class AuthController extends Controller
 
         if ($status === Password::PASSWORD_RESET) {
             return response()->json([
+                'success' => true,
                 'message' => 'Passwordmu berhasil di reset!'
             ]);
         }
