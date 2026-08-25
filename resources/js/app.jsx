@@ -4,6 +4,9 @@ import { createRoot } from 'react-dom/client';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import '../css/app.css';
 
+// Context
+import { DarkModeProvider, gunakanDarkMode } from './context/DarkModeContext';
+
 // Kumpulan Library
 // import './bootstrap';
 import '../css/app.css';
@@ -31,7 +34,9 @@ import PrivateRoute from './components/PrivateRoute';
 //     return token ? children : <Navigate to="/login" />;
 // }
 
-function App() {
+function AppContent() {
+    const { darkMode, toggleDarkMode } = gunakanDarkMode();
+
     useEffect(() => {
         AOS.init({ duration: 2000, once: true });
     }, []);
@@ -48,20 +53,29 @@ function App() {
                 {/* Protected Routes (Dengan Layout) */}
                 <Route path="/" element={
                     <PrivateRoute>
-                        <MainLayout>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <Dashboard />
                         </MainLayout>
                     </PrivateRoute>
                 } />
                 <Route path="/dashboard" element={
                     <PrivateRoute>
-                        <MainLayout>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <Dashboard />
                         </MainLayout>
                     </PrivateRoute>
                 } />
+                <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </BrowserRouter>
+    );
+}
+
+function App() {
+    return (
+        <DarkModeProvider>
+            <AppContent />
+        </DarkModeProvider>
     );
 }
 
