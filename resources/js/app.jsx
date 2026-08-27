@@ -25,6 +25,11 @@ import MainLayout from './layouts/MainLayout';
 import ForgotPassword from './pages/Auth/forgotPassword';
 import ResetPassword from './pages/Auth/resetPassword';
 
+// Import Halaman Kategori
+import KategoriHome from './pages/Kategori/Index';
+import BuatKategori from './pages/Kategori/Create';
+import EditKategori from './pages/Kategori/Edit';
+
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
 
@@ -62,6 +67,27 @@ function AppContent() {
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <Dashboard />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/kategori" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <KategoriHome />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/kategori/Create" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <BuatKategori />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/kategori/Edit/:id" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <EditKategori />
                         </MainLayout>
                     </PrivateRoute>
                 } />
