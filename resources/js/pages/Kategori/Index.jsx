@@ -36,7 +36,7 @@ export default function KategoriHome() {
     const handleDelete = (id, nama) => {
         Swal.fire({
             title: 'Yakin ingin menghapus?',
-            text: `Kategori "${nama}" akan dihapus secara permanen.`,
+            text: `Kategori "${nama}" akan dihapus secara permanen loh.`,
             icon: 'warning',
             showCancelButton: true,
             confirmButtonColor: '#d33',

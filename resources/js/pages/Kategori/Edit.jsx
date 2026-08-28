@@ -67,7 +67,7 @@ export default function EditKategori() {
                 title: 'Berhasil!',
                 text: 'Kategori berhasil kamu ubah!',
                 icon: 'success',
-                timer: 2000,
+                timer: 1500,
                 showConfirmButton: false,
             });
             navigate('/kategori');

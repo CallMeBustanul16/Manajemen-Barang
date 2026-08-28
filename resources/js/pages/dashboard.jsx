@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Package, Tag, AlertTriangle, TrendingUp, TrendingDown, Box, Truck } from 'lucide-react';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
@@ -195,10 +196,10 @@ export default function Dashboard() {
                         Aksi Cepat
                     </h3>
                     <div className="grid grid-cols-2 gap-3">
-                        <button className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-600 dark:text-blue-400">
+                        <Link to="/Produk/Create" className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-600 dark:text-blue-400">
                             <Package className="w-6 h-6 mx-auto mb-2" />
                             <span className="text-sm font-medium">Tambah Produk</span>
-                        </button>
+                        </Link>
                         <button className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-green-600 dark:text-green-400">
                             <Box className="w-6 h-6 mx-auto mb-2" />
                             <span className="text-sm font-medium">Stok Masuk</span>
@@ -207,10 +208,10 @@ export default function Dashboard() {
                             <Box className="w-6 h-6 mx-auto mb-2" />
                             <span className="text-sm font-medium">Stok Keluar</span>
                         </button>
-                        <button className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-purple-600 dark:text-purple-400">
+                        <Link to="/Kategori" className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-purple-600 dark:text-purple-400">
                             <Tag className="w-6 h-6 mx-auto mb-2" />
                             <span className="text-sm font-medium">Kategori</span>
-                        </button>
+                        </Link>
                     </div>
                 </div>
             </div>

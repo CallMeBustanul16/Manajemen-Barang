@@ -43,7 +43,7 @@ export default function BuatKategori() {
                 title: 'Berhasil!',
                 text: 'Kategori yang kamu minta berhasil ditambahkan tanpa masalah!',
                 icon: 'success',
-                timer: 2000,
+                timer: 1500,
                 showConfirmButton: false,
             });
             navigate('/kategori');

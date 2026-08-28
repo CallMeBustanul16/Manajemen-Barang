@@ -27,9 +27,11 @@ class MemintaProduk extends FormRequest
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'harga' => 'required|numeric|min:0',
+            'sku' => 'required|string|unique:produk,sku',
             'stok' => 'required|integer|min:0',
+            'stok_minimal' => 'required|integer|min:0',
             'kategori_id' => 'required|exists:kategori,id',
-            'slug' => 'required|string|unique:produk,slug,' . ($produkId ? ",$produkId" : ''),
+            'pemasok_id' => 'required|exists:pemasok,id',
         ];
     }
 

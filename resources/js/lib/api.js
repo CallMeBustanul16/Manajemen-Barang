@@ -42,20 +42,22 @@ export const kategoriAPI = {
     delete: (id) => api.delete(`/kategori/${id}`),
 };
 
-// Fungsi untuk Produk
-export const produkAPI = {
-    getAll: () => api.get('/produk'),
-    create: (data) => api.post('/produk', data),
-    update: (id, data) => api.put(`/produk/${id}`, data),
-    delete: (id) => api.delete(`/produk/${id}`),
-};
-
 // Fungsi untuk Pemasok
 export const pemasokAPI = {
     getAll: () => api.get('/pemasok'),
+    getById: (id) => api.get(`/pemasok/${id}`),
     create: (data) => api.post('/pemasok', data),
     update: (id, data) => api.put(`/pemasok/${id}`, data),
     delete: (id) => api.delete(`/pemasok/${id}`),
+};
+
+// Fungsi untuk Produk
+export const produkAPI = {
+    getAll: () => api.get('/produk'),
+    getById: (id) => api.get(`/produk/${id}`),
+    create: (data) => api.post('/produk', data),
+    update: (id, data) => api.put(`/produk/${id}`, data),
+    delete: (id) => api.delete(`/produk/${id}`),
 };
 
 // Interceptor untuk menangani error

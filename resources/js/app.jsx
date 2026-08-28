@@ -30,6 +30,16 @@ import KategoriHome from './pages/Kategori/Index';
 import BuatKategori from './pages/Kategori/Create';
 import EditKategori from './pages/Kategori/Edit';
 
+// Import Halaman Pemasok
+import PemasokHome from './pages/Pemasok/Index';
+import BuatPemasok from './pages/Pemasok/Create';
+import EditPemasok from './pages/Pemasok/Edit';
+
+// Import Halaman Produk
+import ProdukHome from './pages/Produk/Index';
+import BuatProduk from './pages/Produk/Create';
+import EditProduk from './pages/Produk/Edit';
+
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
 
@@ -88,6 +98,48 @@ function AppContent() {
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <EditKategori />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/pemasok" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <PemasokHome />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/pemasok/Create" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <BuatPemasok />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/pemasok/Edit/:id" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <EditPemasok />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/produk" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <ProdukHome />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/produk/Create" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <BuatProduk />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/produk/Edit/:id" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <EditProduk />
                         </MainLayout>
                     </PrivateRoute>
                 } />
