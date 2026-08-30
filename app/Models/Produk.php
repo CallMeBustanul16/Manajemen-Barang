@@ -18,4 +18,9 @@ class Produk extends Model
     {
         return $this->belongsTo(Pemasok::class);
     }
+
+    public function stokTransaksi()
+    {
+        return $this->hasMany(StokTransaksi::class);
+    }
 }

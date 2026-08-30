@@ -1,54 +1,94 @@
-import React, { useEffect, useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Package, Tag, AlertTriangle, TrendingUp, TrendingDown, Box, Truck } from 'lucide-react';
+import {
+    Package,
+    Tag,
+    Truck,
+    AlertTriangle,
+    TrendingUp,
+    TrendingDown,
+    Box,
+    ShoppingCart,
+    Clock,
+    ArrowRight,
+    RefreshCw,
+} from 'lucide-react';
+import Swal from 'sweetalert2';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 export default function Dashboard() {
     const [stats, setStats] = useState({
-        totalProduk: 0,
-        totalKategori: 0,
-        totalPemasok: 0,
-        stokMenipis: 0,
-        produkMasuk: 0,
-        produkKeluar: 0,
+        total_produk: 0,
+        total_kategori: 0,
+        total_pemasok: 0,
+        produk_stok_menipis: 0,
+        produk_stok_habis: 0,
     });
     const [loading, setLoading] = useState(true);
+    const [lastUpdated, setLastUpdated] = useState(null);
 
     useEffect(() => {
-        // Inisialisasi AOS
         AOS.init({
             duration: 800,
             once: true,
             easing: 'ease-out-cubic',
         });
-
-        // Fetch data statistik (nanti akan dihubungkan dengan API)
         fetchStats();
     }, []);
 
     const fetchStats = async () => {
+        setLoading(true);
         try {
-            // Karena belum ada CRUD, sementara pakai data dummy, nanti ganti dengan API
-            setStats({
-                totalProduk: 0,
-                totalKategori: 0,
-                totalPemasok: 0,
-                stokMenipis: 0,
-                produkMasuk: 0,
-                produkKeluar: 0,
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/dashboard/stats', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
             });
-            setLoading(false);
+
+            if (!response.ok) {
+                throw new Error('Gagal mengambil data statistik');
+            }
+
+            const result = await response.json();
+            const data = result.data || result;
+            setStats({
+                total_produk: data.total_produk || 0,
+                total_kategori: data.total_kategori || 0,
+                total_pemasok: data.total_pemasok || 0,
+                produk_stok_menipis: data.produk_stok_menipis || 0,
+                produk_stok_habis: data.produk_stok_habis || 0,
+            });
+            setLastUpdated(new Date());
         } catch (error) {
             console.error('Error fetching stats:', error);
+            Swal.fire('Error', 'Gagal memuat data dashboard', 'error');
+        } finally {
             setLoading(false);
         }
     };
 
+    const formatTime = (date) => {
+        if (!date) return '-';
+        try {
+            return new Date(date).toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+            });
+        } catch {
+            return '-';
+        }
+    };
+
+    // Stat Cards Data
     const statCards = [
         {
+            key: 'total_produk',
             title: 'Total Produk',
-            value: stats.totalProduk,
+            value: stats.total_produk,
             icon: Package,
             color: 'blue',
             bg: 'bg-blue-50 dark:bg-blue-900/20',
@@ -56,8 +96,9 @@ export default function Dashboard() {
             border: 'border-blue-200 dark:border-blue-800',
         },
         {
+            key: 'total_kategori',
             title: 'Total Kategori',
-            value: stats.totalKategori,
+            value: stats.total_kategori,
             icon: Tag,
             color: 'green',
             bg: 'bg-green-50 dark:bg-green-900/20',
@@ -65,8 +106,9 @@ export default function Dashboard() {
             border: 'border-green-200 dark:border-green-800',
         },
         {
+            key: 'total_pemasok',
             title: 'Total Pemasok',
-            value: stats.totalPemasok,
+            value: stats.total_pemasok,
             icon: Truck,
             color: 'purple',
             bg: 'bg-purple-50 dark:bg-purple-900/20',
@@ -74,31 +116,64 @@ export default function Dashboard() {
             border: 'border-purple-200 dark:border-purple-800',
         },
         {
+            key: 'produk_stok_menipis',
             title: 'Stok Menipis',
-            value: stats.stokMenipis,
+            value: stats.produk_stok_menipis,
             icon: AlertTriangle,
+            color: 'yellow',
+            bg: 'bg-yellow-50 dark:bg-yellow-900/20',
+            text: 'text-yellow-600 dark:text-yellow-400',
+            border: 'border-yellow-200 dark:border-yellow-800',
+        },
+        {
+            key: 'produk_stok_habis',
+            title: 'Stok Habis',
+            value: stats.produk_stok_habis,
+            icon: Box,
             color: 'red',
             bg: 'bg-red-50 dark:bg-red-900/20',
             text: 'text-red-600 dark:text-red-400',
             border: 'border-red-200 dark:border-red-800',
         },
-        {
-            title: 'Barang Masuk (Hari Ini)',
-            value: stats.produkMasuk,
-            icon: TrendingUp,
-            color: 'emerald',
-            bg: 'bg-emerald-50 dark:bg-emerald-900/20',
-            text: 'text-emerald-600 dark:text-emerald-400',
-            border: 'border-emerald-200 dark:border-emerald-800',
+    ];
+
+    // Quick Actions
+    const quickActions = [
+        { 
+            to: '/produk/create', 
+            icon: Package, 
+            label: 'Tambah Produk', 
+            color: 'blue',
+            bg: 'bg-blue-50 dark:bg-blue-900/20',
+            text: 'text-blue-600 dark:text-blue-400',
+            hover: 'hover:bg-blue-100 dark:hover:bg-blue-900/30',
         },
-        {
-            title: 'Barang Keluar (Hari Ini)',
-            value: stats.produkKeluar,
-            icon: TrendingDown,
-            color: 'orange',
-            bg: 'bg-orange-50 dark:bg-orange-900/20',
-            text: 'text-orange-600 dark:text-orange-400',
-            border: 'border-orange-200 dark:border-orange-800',
+        { 
+            to: '/stok/masuk', 
+            icon: TrendingUp, 
+            label: 'Stok Masuk', 
+            color: 'green',
+            bg: 'bg-green-50 dark:bg-green-900/20',
+            text: 'text-green-600 dark:text-green-400',
+            hover: 'hover:bg-green-100 dark:hover:bg-green-900/30',
+        },
+        { 
+            to: '/stok/keluar', 
+            icon: TrendingDown, 
+            label: 'Stok Keluar', 
+            color: 'red',
+            bg: 'bg-red-50 dark:bg-red-900/20',
+            text: 'text-red-600 dark:text-red-400',
+            hover: 'hover:bg-red-100 dark:hover:bg-red-900/30',
+        },
+        { 
+            to: '/kategori', 
+            icon: Tag, 
+            label: 'Kategori', 
+            color: 'purple',
+            bg: 'bg-purple-50 dark:bg-purple-900/20',
+            text: 'text-purple-600 dark:text-purple-400',
+            hover: 'hover:bg-purple-100 dark:hover:bg-purple-900/30',
         },
     ];
 
@@ -115,7 +190,7 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-6">
-            {/* Header */}
+            {/* === HEADER === */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -125,95 +200,151 @@ export default function Dashboard() {
                         Selamat datang di Manajemen Barang
                     </p>
                 </div>
-                <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
-                    <span className="inline-flex items-center gap-1">
-                        <span className="w-2 h-2 rounded-full bg-green-500"></span>
-                        Sistem aktif
+                <div className="flex items-center gap-3">
+                    <span className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+                        <Clock className="w-3 h-3" />
+                        Update: {formatTime(lastUpdated)}
                     </span>
+                    <button
+                        onClick={fetchStats}
+                        className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        title="Refresh"
+                    >
+                        <RefreshCw className="w-4 h-4" />
+                    </button>
                 </div>
             </div>
 
-            {/* Stat Cards Grid */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {/* === STAT CARDS === */}
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {statCards.map((card, index) => (
                     <div
-                        key={card.title}
+                        key={card.key}
                         data-aos="fade-up"
-                        data-aos-delay={index * 100}
+                        data-aos-delay={index * 50}
                         className={`
                             bg-white dark:bg-gray-800 
                             rounded-xl shadow-sm hover:shadow-md 
                             border ${card.border}
-                            p-6 transition-all duration-300 
+                            p-4 transition-all duration-300 
                             hover:scale-[1.02] hover:shadow-lg
                         `}
                     >
                         <div className="flex items-start justify-between">
                             <div>
-                                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+                                <p className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
                                     {card.title}
                                 </p>
-                                <p className="text-3xl font-bold text-gray-900 dark:text-white mt-2">
+                                <p className="text-2xl font-bold text-gray-900 dark:text-white mt-1">
                                     {card.value}
                                 </p>
                             </div>
                             <div className={`
-                                p-3 rounded-xl ${card.bg}
+                                p-2 rounded-xl ${card.bg}
                             `}>
-                                <card.icon className={`w-6 h-6 ${card.text}`} />
+                                <card.icon className={`w-5 h-5 ${card.text}`} />
                             </div>
                         </div>
                     </div>
                 ))}
             </div>
 
-            {/* Bottom Section: Recent Activity & Quick Actions */}
+            {/* === BOTTOM SECTION: Aktivitas + Aksi Cepat === */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                {/* Recent Activity */}
+                {/* Recent Activity - TAMPILAN MOBILE vs DESKTOP */}
                 <div
                     data-aos="fade-up"
-                    data-aos-delay="400"
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                    data-aos-delay="300"
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
                 >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Clock className="w-5 h-5 text-gray-500" />
                         Aktivitas Terbaru
                     </h3>
-                    <div className="space-y-3">
-                        <p className="text-gray-500 dark:text-gray-400 text-sm text-center py-8">
-                            Belum ada aktivitas hari ini
-                        </p>
-                        {/* Nanti diisi dengan data real dari API */}
+
+                    {/* Mobile View (1 kolom) */}
+                    <div className="block sm:hidden">
+                        <div className="text-center py-6">
+                            <ShoppingCart className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                Belum ada aktivitas hari ini
+                            </p>
+                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
+                                Aktivitas stok akan muncul di sini
+                            </p>
+                        </div>
+                    </div>
+
+                    {/* Desktop View (2 kolom) */}
+                    <div className="hidden sm:block">
+                        <div className="text-center py-8">
+                            <ShoppingCart className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
+                            <p className="text-gray-500 dark:text-gray-400">
+                                Belum ada aktivitas hari ini
+                            </p>
+                            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
+                                Aktivitas stok akan muncul di sini
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                {/* Quick Actions */}
+                {/* Quick Actions - MOBILE VS DESKTOP */}
                 <div
                     data-aos="fade-up"
-                    data-aos-delay="500"
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6"
+                    data-aos-delay="400"
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
                 >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                        <Box className="w-5 h-5 text-gray-500" />
                         Aksi Cepat
                     </h3>
-                    <div className="grid grid-cols-2 gap-3">
-                        <Link to="/Produk/Create" className="p-4 bg-blue-50 dark:bg-blue-900/20 rounded-xl hover:bg-blue-100 dark:hover:bg-blue-900/30 transition-colors text-blue-600 dark:text-blue-400">
-                            <Package className="w-6 h-6 mx-auto mb-2" />
-                            <span className="text-sm font-medium">Tambah Produk</span>
-                        </Link>
-                        <button className="p-4 bg-green-50 dark:bg-green-900/20 rounded-xl hover:bg-green-100 dark:hover:bg-green-900/30 transition-colors text-green-600 dark:text-green-400">
-                            <Box className="w-6 h-6 mx-auto mb-2" />
-                            <span className="text-sm font-medium">Stok Masuk</span>
-                        </button>
-                        <button className="p-4 bg-red-50 dark:bg-red-900/20 rounded-xl hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors text-red-600 dark:text-red-400">
-                            <Box className="w-6 h-6 mx-auto mb-2" />
-                            <span className="text-sm font-medium">Stok Keluar</span>
-                        </button>
-                        <Link to="/Kategori" className="p-4 bg-purple-50 dark:bg-purple-900/20 rounded-xl hover:bg-purple-100 dark:hover:bg-purple-900/30 transition-colors text-purple-600 dark:text-purple-400">
-                            <Tag className="w-6 h-6 mx-auto mb-2" />
-                            <span className="text-sm font-medium">Kategori</span>
-                        </Link>
+
+                    {/* Mobile: 2 kolom */}
+                    <div className="grid grid-cols-2 gap-2 sm:hidden">
+                        {quickActions.map((action, index) => (
+                            <Link
+                                key={index}
+                                to={action.to}
+                                className={`
+                                    p-4 rounded-xl ${action.bg} ${action.hover} 
+                                    transition-colors text-center
+                                    ${action.text}
+                                `}
+                            >
+                                <action.icon className="w-6 h-6 mx-auto mb-1" />
+                                <span className="text-xs font-medium block leading-tight">
+                                    {action.label}
+                                </span>
+                            </Link>
+                        ))}
+                    </div>
+
+                    {/* Desktop: 4 kolom */}
+                    <div className="hidden sm:grid grid-cols-2 lg:grid-cols-4 gap-3">
+                        {quickActions.map((action, index) => (
+                            <Link
+                                key={index}
+                                to={action.to}
+                                className={`
+                                    p-4 rounded-xl ${action.bg} ${action.hover} 
+                                    transition-colors text-center
+                                    ${action.text}
+                                `}
+                            >
+                                <action.icon className="w-7 h-7 mx-auto mb-2" />
+                                <span className="text-sm font-medium block">
+                                    {action.label}
+                                </span>
+                            </Link>
+                        ))}
                     </div>
                 </div>
+            </div>
+
+            {/* === FOOTER DASHBOARD === */}
+            <div className="text-center text-xs text-gray-400 dark:text-gray-500 pt-4 border-t border-gray-200 dark:border-gray-700">
+                <p>© {new Date().getFullYear()} Manajemen Barang — Semua data real-time dari database</p>
             </div>
         </div>
     );

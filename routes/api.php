@@ -4,6 +4,7 @@ use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KategoriControllers;
 use App\Http\Controllers\Api\PemasokControllers;
 use App\Http\Controllers\Api\ProdukControllers;
+use App\Http\Controllers\Api\StokControllers;
 
 // Route Auth
 Route::post('/register', [AuthController::class, 'register']);
@@ -14,6 +15,11 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::post('/stok/masuk', [StokControllers::class, 'masuk']);
+    Route::post('/stok/keluar', [StokControllers::class, 'keluar']);
+    Route::get('/stok/history', [StokControllers::class, 'history']);
+    Route::get('/stok/summary', [StokControllers::class, 'summary']);
+    Route::get('/stok/{id}', [StokControllers::class, 'show']);
 });
 
 // Route API untuk kategori, pemasok, dan produk

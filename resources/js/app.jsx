@@ -38,7 +38,12 @@ import EditPemasok from './pages/Pemasok/Edit';
 // Import Halaman Produk
 import ProdukHome from './pages/Produk/Index';
 import BuatProduk from './pages/Produk/Create';
-import EditProduk from './pages/Produk/Edit';
+import EditProduk from './pages/Produk/Edit';   
+
+// Import Masuk dan Keluarnya Barang
+import StokHome from './pages/Stok/Index';
+import StokBarangMasuk from './pages/Stok/Masuk';
+import StokBarangKeluar from './pages/Stok/Keluar';
 
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
@@ -140,6 +145,27 @@ function AppContent() {
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <EditProduk />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/stok" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <StokHome />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/stok/Masuk" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <StokBarangMasuk />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/stok/Keluar" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <StokBarangKeluar />
                         </MainLayout>
                     </PrivateRoute>
                 } />
