@@ -90,12 +90,11 @@ class AuthController extends Controller
     // Bagian Logout
     public function logout(Request $request)
     {
-        $request->user()->currentAccessToken()->delete();
-
-        return response()->json([
-            'succes' => true,
-            'message' => "Kamu berhasil Logout dari akunmu!"
-        ]);
+        if ($request->user()) {
+            $request->user()->currentAccessToken()->delete();
+            return response()->json(['message' => 'Login berhasil!']);
+        }
+        return response()->json(['message' => 'Sesi tidak ada yang aktif'], 401);
     }
 
     // Bagian LupaPassword

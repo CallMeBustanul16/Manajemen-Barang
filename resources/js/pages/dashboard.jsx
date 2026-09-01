@@ -16,6 +16,8 @@ import {
 import Swal from 'sweetalert2';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
+import StokChart from '../components/StokChart';
+import StokAlert from '../components/StokAlert';
 
 export default function Dashboard() {
     const [stats, setStats] = useState({
@@ -190,7 +192,7 @@ export default function Dashboard() {
 
     return (
         <div className="space-y-6">
-            {/* === HEADER === */}
+            {/*  HEADER  */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-gray-900 dark:text-white">
@@ -215,7 +217,11 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* === STAT CARDS === */}
+            <div className="mb-6">
+                <StokAlert />
+            </div>
+            
+            {/*  STAT CARDS  */}
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 {statCards.map((card, index) => (
                     <div
@@ -249,9 +255,11 @@ export default function Dashboard() {
                 ))}
             </div>
 
-            {/* === BOTTOM SECTION: Aktivitas + Aksi Cepat === */}
+            <div className="mt-8">
+                <StokChart />
+            </div>
+            
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                {/* Recent Activity - TAMPILAN MOBILE vs DESKTOP */}
                 <div
                     data-aos="fade-up"
                     data-aos-delay="300"
@@ -342,7 +350,7 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* === FOOTER DASHBOARD === */}
+            {/*  FOOTER DASHBOARD  */}
             <div className="text-center text-xs text-gray-400 dark:text-gray-500 pt-4 border-t border-gray-200 dark:border-gray-700">
                 <p>© {new Date().getFullYear()} Manajemen Barang — Semua data real-time dari database</p>
             </div>

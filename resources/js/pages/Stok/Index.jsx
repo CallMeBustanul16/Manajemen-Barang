@@ -13,6 +13,7 @@ import {
     X,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
+import { Download } from 'lucide-react';
 
 export default function StokIndex() {
     const [transactions, setTransactions] = useState([]);
@@ -143,7 +144,7 @@ export default function StokIndex() {
 
     return (
         <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
-            {/* === HEADER === */}
+            {/* HEADER */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
                     <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
@@ -154,6 +155,8 @@ export default function StokIndex() {
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+
+                    {/* Refresh Button */}
                     <button
                         onClick={handleRefresh}
                         className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -161,6 +164,18 @@ export default function StokIndex() {
                     >
                         <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
+
+                    {/* Download History */}
+                    <button
+                        onClick={() => window.open('/api/stok/export/excel', '_blank')}
+                        className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base rounded-lg transition-colors"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden xs:inline">Export Excel</span>
+                        <span className="xs:hidden">Export</span>
+                    </button>
+
+                    {/* Stok Masuk */}
                     <Link
                         to="/stok/masuk"
                         className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base rounded-lg transition-colors"
@@ -169,6 +184,8 @@ export default function StokIndex() {
                         <span className="hidden xs:inline">Stok Masuk</span>
                         <span className="xs:hidden">Masuk</span>
                     </Link>
+
+                    {/* Stok Keluar */}
                     <Link
                         to="/stok/keluar"
                         className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white text-sm sm:text-base rounded-lg transition-colors"
@@ -180,7 +197,7 @@ export default function StokIndex() {
                 </div>
             </div>
 
-            {/* === FILTERS === */}
+            {/* FILTERS */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
                 <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
@@ -260,7 +277,7 @@ export default function StokIndex() {
                 </div>
             )}
 
-            {/* === TABLE / MOBILE CARDS === */}
+            {/* TABLE / MOBILE CARDS */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {filteredData.length === 0 ? (
                     <div className="text-center py-8 sm:py-12">

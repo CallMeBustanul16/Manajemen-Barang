@@ -10,7 +10,7 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
-class StokControllers extends Controller
+class StokController extends Controller
 {
     /**
      * Tambah stok (Stok Masuk)

@@ -1,10 +1,13 @@
 <?php
 use Illuminate\Support\Facades\Route;
+use Illuminate\Http\Request;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\KategoriControllers;
 use App\Http\Controllers\Api\PemasokControllers;
 use App\Http\Controllers\Api\ProdukControllers;
-use App\Http\Controllers\Api\StokControllers;
+use App\Http\Controllers\Api\StokController;
+use App\Exports\StokExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 // Route Auth
 Route::post('/register', [AuthController::class, 'register']);
@@ -15,11 +18,11 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
-    Route::post('/stok/masuk', [StokControllers::class, 'masuk']);
-    Route::post('/stok/keluar', [StokControllers::class, 'keluar']);
-    Route::get('/stok/history', [StokControllers::class, 'history']);
-    Route::get('/stok/summary', [StokControllers::class, 'summary']);
-    Route::get('/stok/{id}', [StokControllers::class, 'show']);
+    Route::post('/stok/masuk', [StokController::class, 'masuk']);
+    Route::post('/stok/keluar', [StokController::class, 'keluar']);
+    Route::get('/stok/history', [StokController::class, 'history']);
+    Route::get('/stok/summary', [StokController::class, 'summary']);
+    Route::get('/stok/{id}', [StokController::class, 'show']);
 });
 
 // Route API untuk kategori, pemasok, dan produk
@@ -27,7 +30,43 @@ Route::apiResource('kategori', KategoriControllers::class);
 Route::apiResource('pemasok', PemasokControllers::class);
 Route::apiResource('produk', ProdukControllers::class);
 
-// Opsional
+// Route API untuk Stok
+Route::get('/dashboard/stok-chart', function () {
+    $categories = \App\Models\Kategori::withCount('produk')->get();
+    $labels = $categories->pluck('nama_kategori');
+    $values = $categories->map(function ($cat) {
+        return $cat->produk->sum('stok');
+    });
+    
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'labels' => $labels,
+            'values' => $values,
+        ],
+    ]);
+})->middleware('auth:sanctum');
+
+Route::get('/dashboard/low-stock', function () {
+    $products = \App\Models\Produk::whereRaw('CAST(stok AS SIGNED) <= CAST(stok_minimal AS SIGNED)')
+        ->with('kategori')
+        ->orderBy('stok', 'asc')
+        ->get();
+    return response()->json([
+        'success' => true,
+        'data' => $products,
+    ]);
+})->middleware('auth:sanctum');
+
+
+// API untuk export
+Route::get('/stok/export/excel', function (Request $request) {
+    $startDate = $request->start_date;
+    $endDate = $request->end_date;
+
+    return Excel::download(new StokExport($startDate, $endDate), 'laporan-stok.xlsx');
+})->middleware('auth:sanctum');
+
 Route::get('/dashboard/stats', function() {
     $kategoriCount = \App\Models\Kategori::count();
     $pemasokCount = \App\Models\Pemasok::count();

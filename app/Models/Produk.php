@@ -8,6 +8,10 @@ class Produk extends Model
 {
     protected $table = 'produk';
     protected $fillable = ['nama_produk', 'deskripsi', 'harga', 'sku', 'stok', 'stok_minimal', 'kategori_id', 'pemasok_id'];
+    protected $casts = [
+        'stok' => 'integer',
+        'stok_minimal' => 'integer',
+    ];
 
     public function kategori()
     {
