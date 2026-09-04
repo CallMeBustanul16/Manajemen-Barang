@@ -6,6 +6,8 @@ use App\Http\Controllers\Api\KategoriControllers;
 use App\Http\Controllers\Api\PemasokControllers;
 use App\Http\Controllers\Api\ProdukControllers;
 use App\Http\Controllers\Api\StokController;
+use App\Http\Controllers\Api\QrController;
+use App\Http\Controllers\Api\BatchController;
 use App\Exports\StokExport;
 use Maatwebsite\Excel\Facades\Excel;
 
@@ -18,11 +20,27 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+
+    // Stok masuk-keluar-transaksi
     Route::post('/stok/masuk', [StokController::class, 'masuk']);
     Route::post('/stok/keluar', [StokController::class, 'keluar']);
     Route::get('/stok/history', [StokController::class, 'history']);
     Route::get('/stok/summary', [StokController::class, 'summary']);
     Route::get('/stok/{id}', [StokController::class, 'show']);
+
+    // Produk QR
+    Route::post('/produk/{id}/generate-qr', [QrController::class, 'generateProdukQr']);
+    Route::get('/produk/{id}/download-qr', [QrController::class, 'downloadProdukQr']);
+    Route::delete('/produk/{id}/delete-qr', [QrController::class, 'deleteProdukQr']);
+    
+    // Batch QR
+    Route::post('/batch/{id}/generate-qr', [QrController::class, 'generateBatchQr']);
+    Route::get('/batch/{id}/download-qr', [QrController::class, 'downloadBatchQr']);
+
+    // Batch
+    Route::apiResource('batch', BatchController::class);
+    Route::get('/batch/scan/{qrCode}', [BatchController::class, 'scan']);
+    Route::get('/batch/produk/{produkId}/batches', [BatchController::class, 'getBatchesByProduk']);
 });
 
 // Route API untuk kategori, pemasok, dan produk

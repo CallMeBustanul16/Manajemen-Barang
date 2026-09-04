@@ -45,6 +45,11 @@ import StokHome from './pages/Stok/Index';
 import StokBarangMasuk from './pages/Stok/Masuk';
 import StokBarangKeluar from './pages/Stok/Keluar';
 
+// Import Batch
+import BatchHome from './pages/Batch/Index';
+import BuatBatch from './pages/Batch/Create';
+import EditBatch from './pages/Batch/Edit';
+
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
 
@@ -166,6 +171,27 @@ function AppContent() {
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <StokBarangKeluar />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/batch" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <BatchHome />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/batch/Create" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <BuatBatch />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/batch/Edit/:id" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <EditBatch />
                         </MainLayout>
                     </PrivateRoute>
                 } />

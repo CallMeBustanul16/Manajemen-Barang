@@ -7,6 +7,7 @@ import {
     Tags,
     Truck,
     ShoppingCart,
+    QrCode,
     BarChart3,
     Settings,
     LogOut,
@@ -18,6 +19,7 @@ const menuItems = [
     { path: '/kategori', icon: Tags, label: 'Kategori' },
     { path: '/pemasok', icon: Truck, label: 'Pemasok' },
     { path: '/stok', icon: ShoppingCart, label: 'Manajemen Stok' },
+    { path: '/batch', icon: QrCode, label: 'Batch' },
     { path: '/laporan', icon: BarChart3, label: 'Laporan' },
 ];
 
