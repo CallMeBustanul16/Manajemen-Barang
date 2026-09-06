@@ -1,6 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Plus, Edit, Trash2, Search, ChevronLeft, ChevronRight, Package, AlertTriangle, CheckCircle } from 'lucide-react';
+import { 
+    Plus, Edit, Trash2, 
+    Search, ChevronLeft, ChevronRight, 
+    Package, AlertTriangle, CheckCircle, 
+    QrCode, Download 
+} from 'lucide-react';
 import Swal from 'sweetalert2';
 import { produkAPI } from '../../lib/api';
 
@@ -22,6 +27,7 @@ export default function ProdukHome() {
         try {
             const response = await produkAPI.getAll();
             const data = response.data.data || response.data;
+            console.log('Data produk:', data);
             setProduk(Array.isArray(data) ? data : []);
             setTotalPages(Math.ceil((Array.isArray(data) ? data.length : 0) / perPage));
         } catch (error) {
@@ -94,6 +100,92 @@ export default function ProdukHome() {
         );
     }
 
+    // Generate QR Code untuk Produk
+    const handleGenerateProdukQr = async (id) => {
+    try {
+        const token = localStorage.getItem('token');
+        const response = await fetch(`/api/produk/${id}/generate-qr`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Accept': 'application/json',
+            },
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            setProduk(prev =>
+                prev.map(item =>
+                    item.id === id
+                        ? { ...item, qr_code: data.data.qr_code }
+                        : item
+                )
+            );
+
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'QR Code produk berhasil digenerate',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        } else {
+            Swal.fire('Error', data.message || 'Gagal generate QR Code', 'error');
+        }
+    } catch (error) {
+        console.error('Error generating QR:', error);
+        Swal.fire('Error', 'Gagal generate QR Code', 'error');
+    }
+};
+
+    // Download QR Code Produk
+    const handleDownloadProdukQr = async (id) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/produk/${id}/download-qr`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+            });
+
+            if (response.ok) {
+                const blob = await response.blob();
+                const url = window.URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `produk-${id}.png`;
+                document.body.appendChild(a);
+                a.click();
+                a.remove();
+                window.URL.revokeObjectURL(url);
+            } else {
+                const data = await response.json();
+                if (response.status === 404 && data.message?.includes('tidak ditemukan')) {
+                    const result = await Swal.fire({
+                        title: 'File QR Tidak Ditemukan!',
+                        text: 'File QR Code untuk produk ini tidak ditemukan. Apakah Anda ingin membuat ulang QR Code?',
+                        icon: 'warning',
+                        showCancelButton: true,
+                        confirmButtonColor: '#3085d6',
+                        cancelButtonColor: '#d33',
+                        confirmButtonText: 'Ya, Generate Ulang!',
+                        cancelButtonText: 'Batal',
+                    });
+                
+                    if (result.isConfirmed) {
+                        await handleGenerateProdukQr(id);
+                    }
+                } else {
+                    Swal.fire('Error', data.message || 'Gagal download QR', 'error');
+                }
+            }
+        } catch (error) {
+            console.error('Error downloading QR:', error);
+            Swal.fire('Error', 'Gagal download QR', 'error');
+        }
+    };
+
     return (
         <div className="space-y-6">
             {/* Header */}
@@ -147,6 +239,7 @@ export default function ProdukHome() {
                                         <th className="px-6 py-3 font-semibold hidden lg:table-cell">Harga</th>
                                         <th className="px-6 py-3 font-semibold text-center">Stok</th>
                                         <th className="px-6 py-3 font-semibold text-center">Aksi</th>
+                                        <th className="px-6 py-3 font-semibold text-center">QR Code</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
@@ -183,6 +276,8 @@ export default function ProdukHome() {
                                                         </span>
                                                     </div>
                                                 </td>
+
+                                                {/* Kolom Aksi */}
                                                 <td className="px-6 py-4">
                                                     <div className="flex items-center justify-center gap-2">
                                                         <button
@@ -200,6 +295,30 @@ export default function ProdukHome() {
                                                             <Trash2 className="w-4 h-4" />
                                                         </button>
                                                     </div>
+                                                </td>
+
+                                                {/* Kolom QR Code */}
+                                                <td className="px-6 py-4 text-center">
+                                                    {item.qr_code ? (
+                                                        <div className="flex items-center justify-center gap-2">
+                                                            <span className="text-xs text-green-600 dark:text-green-400">✓</span>
+                                                            <button
+                                                                onClick={() => handleDownloadProdukQr(item.id)}
+                                                                className="p-1 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded transition-colors"
+                                                                title="Download QR"
+                                                            >
+                                                                <Download className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    ) : (
+                                                        <button
+                                                            onClick={() => handleGenerateProdukQr(item.id)}
+                                                            className="px-2 py-1 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded transition-colors"
+                                                        >
+                                                            <QrCode className="w-4 h-4 inline mr-1" />
+                                                            Generate
+                                                        </button>
+                                                    )}
                                                 </td>
                                             </tr>
                                         );

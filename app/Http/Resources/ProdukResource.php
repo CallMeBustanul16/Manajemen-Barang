@@ -23,6 +23,7 @@ class ProdukResource extends JsonResource
             'sku' => $this->sku,
             'stok' => $this->stok,
             'stok_minimal' => $this->stok_minimal,
+            'qr_code' => $this->qr_code,
             'status_stok' => $this->stok > 0 ? 'Tersedia' : 'Habis',
             'kategori' => new KategoriResource($this->whenLoaded('kategori')),
             'pemasok' => new PemasokResource($this->whenLoaded('pemasok')),

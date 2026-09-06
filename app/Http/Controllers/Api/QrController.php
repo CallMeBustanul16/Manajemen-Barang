@@ -24,34 +24,65 @@ class QrController extends Controller
     public function generateProdukQr($produkId)
     {
         $produk = Produk::findOrFail($produkId);
-        
-        // Cek apakah sudah punya QR Code
-        if ($produk->qr_code) {
+
+        $filename = 'produk-' . $produk->id . '.png';
+        $path = storage_path('app/public/qrcodes/' . $filename);
+        $fileExists = file_exists($path);
+
+        if ($fileExists && $produk->qr_code) {
             return response()->json([
                 'success' => false,
-                'message' => 'Produk sudah memiliki QR Code',
+                'message' => 'QR Code sudah ada dan file tersedia. Silakan download.',
                 'data' => [
                     'qr_code' => $produk->qr_code,
-                    'url' => $this->qrService->getQrUrl('produk-' . $produk->id . '.png'),
+                    'url' => $this->qrService->getQrUrl($filename),
                 ]
             ], 422);
         }
         
-        // Generate QR Code
-        $qrCode = $this->qrService->generateAndSaveProdukQr($produk);
-        
-        // Update produk
-        $produk->qr_code = $qrCode;
-        $produk->save();
-        
+        // Cek apakah sudah punya QR Code
+        if (!$fileExists) {
+
+            // Generate QR Code baru
+            $qrCode = $this->qrService->generateProdukQr($produk->id);
+            $this->qrService->saveQrImage($qrCode, $path);
+
+            // Update produk dengan qr_code baru
+            $produk->qr_code = $qrCode;
+            $produk->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'QR Code produk berhasil digenerate ulang',
+                'data' => [
+                    'qr_code' => $qrCode,
+                    'url' => $this->qrService->getQrUrl($filename),
+                ]
+            ]);
+        }
+
+        // Jika file tidak ada, tapi qr_code null (produk belum punya QR)
+        if (!$produk->qr_code) {
+            $qrCode = $this->qrService->generateProdukQr($produk->id);
+            $this->qrService->saveQrImage($qrCode, $path);
+            $produk->qr_code = $qrCode;
+            $produk->save();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'QR Code produk berhasil digenerate',
+                'data' => [
+                    'qr_code' => $qrCode,
+                    'url' => $this->qrService->getQrUrl($filename),
+                ]
+            ]);
+        }
+
+        // Fallback
         return response()->json([
-            'success' => true,
-            'message' => 'QR Code produk berhasil digenerate',
-            'data' => [
-                'qr_code' => $qrCode,
-                'url' => $this->qrService->getQrUrl('produk-' . $produk->id . '.png'),
-            ]
-        ]);
+            'success' => false,
+            'message' => 'Terjadi kesalahan tidak terduga',
+        ], 500);
     }
 
     /**
@@ -74,7 +105,7 @@ class QrController extends Controller
         if (!file_exists($path)) {
             return response()->json([
                 'success' => false,
-                'message' => 'File QR Code tidak ditemukan'
+                'message' => 'File QR Code tidak ditemukan. Silakan generate ulang'
             ], 404);
         }
         

@@ -7,7 +7,7 @@ import '../css/app.css';
 // Context
 import { DarkModeProvider, gunakanDarkMode } from './context/DarkModeContext';
 
-// Kumpulan Library
+// Kumpulan Semuan Library dan Halaman
 // import './bootstrap';
 import '../css/app.css';
 import AOS from 'aos';
@@ -49,6 +49,9 @@ import StokBarangKeluar from './pages/Stok/Keluar';
 import BatchHome from './pages/Batch/Index';
 import BuatBatch from './pages/Batch/Create';
 import EditBatch from './pages/Batch/Edit';
+
+// Import Scanner
+import ScannerHome from './pages/Scanner/Index';
 
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
@@ -195,6 +198,14 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+                <Route path="/scan" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <ScannerHome />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </BrowserRouter>

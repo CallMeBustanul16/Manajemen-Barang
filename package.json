@@ -26,6 +26,7 @@
         "date-fns": "^4.4.0",
         "date-fns-tz": "^3.2.0",
         "gsap": "^3.15.0",
+        "html5-qrcode": "^2.3.8",
         "lucide-react": "^1.33.0",
         "react": "^19.2.8",
         "react-chartjs-2": "^5.3.1",

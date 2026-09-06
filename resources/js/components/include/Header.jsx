@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, User, LogOut, Package, LayoutDashboard, Moon, Sun } from 'lucide-react';
+import { Menu, X, User, LogOut, Package, LayoutDashboard, Moon, Sun, QrCode } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDarkMode }) {
@@ -96,6 +96,18 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                         >
                             {darkMode ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
                         </button>
+                        
+                        {/* Right: Scanner (Mobile) + Dark Mode + User */}
+                        <div className="flex items-center gap-2 sm:gap-4">
+                            <button
+                                onClick={() => navigate('/scan')}
+                                className="lg:hidden p-2 rounded-lg transition-colors bg-blue-600 hover:bg-blue-700 text-white"
+                                aria-label="Scan QR Code"
+                                title="Scan QR Code"
+                            >
+                                <QrCode className="w-5 h-5" />
+                            </button>
+                        </div>
 
                         {/* Dashboard Link */}
                         <button
