@@ -4,6 +4,7 @@ import { QrCode, Package, X, Camera, RefreshCw, ArrowLeft } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { Html5Qrcode } from 'html5-qrcode';
 import ScanBatchModal from '../../components/ScanBatchModal';
+import ScanProdukModal from '../../components/ScanProdukModal';
 import ErrorBoundary from './ErrorBoundary';
 
 export default function ScannerHome() {
@@ -12,6 +13,7 @@ export default function ScannerHome() {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
+    const [facingMode, setFacingMode] = useState('environment');
     const [error, setError] = useState(null);
     const html5QrCodeRef = useRef(null);
 
@@ -78,7 +80,7 @@ export default function ScannerHome() {
             };
 
             await scanner.start(
-                { facingMode: 'environment' },
+                { facingMode: facingMode },
                 config,
                 onScanSuccess,
                 onScanError
@@ -130,6 +132,19 @@ export default function ScannerHome() {
             html5QrCodeRef.current = null;
             setScanning(false);
         }
+    };
+
+    // Ganti kamera depan/belakang
+    const switchCamera = async () => {
+        await stopScanner();
+
+        // Ganti mode
+        const newMode = facingMode === 'environment' ? 'user' : 'environment';
+        setFacingMode(newMode);
+
+        setTimeout(() => {
+            startScanner();
+        }, 300);
     };
 
     // Handle scan success
@@ -281,9 +296,22 @@ export default function ScannerHome() {
                     </div>
                 </div>
                 <div className="flex items-center gap-2">
+
+                    {/* Switch Kamera */}
+                    <button
+                        onClick={switchCamera}
+                        className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
+                        title={facingMode === 'environment' ? 'Ganti ke Kamera Depan' : 'Ganti ke Kamera Belakang'}
+                    >
+                        <Camera className="w-5 h-5" />
+                    </button>
+
+                    {/* Status Kamera */}
                     <span className={`px-2 py-1 text-xs rounded-full ${scanning ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'}`}>
                         {scanning ? 'Kamera Aktif' : 'Kamera Mati'}
                     </span>
+
+                    {/* Restart Kamera */}
                     <button
                         onClick={startScanner}
                         className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -344,6 +372,26 @@ export default function ScannerHome() {
                     onClose={async () => {
                         await stopScanner();
 
+                        setModalOpen(false);
+                        setResult(null);
+                        setScanMode(null);
+                    }}
+                    onSuccess={async () => {
+                        await stopScanner();
+                        setModalOpen(false);
+                        setResult(null);
+                        setScanMode(null);
+                    }}
+                    data={result.data}
+                />
+            )}
+
+            {/* Modal Scan Produk */}
+            {result && result.mode === 'produk' && (
+                <ScanProdukModal
+                    isOpen={modalOpen}
+                    onClose={async () => {
+                        await stopScanner();
                         setModalOpen(false);
                         setResult(null);
                         setScanMode(null);

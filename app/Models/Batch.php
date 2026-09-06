@@ -25,6 +25,21 @@ class Batch extends Model
         'stok_saat_ini' => 'integer',
     ];
 
+    public function addStock($amount)
+    {
+        $this->stok_saat_ini += $amount;
+        $this->save();
+    }
+    
+    public function removeStock($amount)
+    {
+        if ($this->stok_saat_ini < $amount) {
+            throw new \Exception('Stok batch tidak mencukupi');
+        }
+        $this->stok_saat_ini -= $amount;
+        $this->save();
+    }
+
     // Relasi ke Produk
     public function produk()
     {

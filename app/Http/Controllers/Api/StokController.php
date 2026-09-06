@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Produk;
 use App\Models\StokTransaksi;
+use App\Models\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -19,11 +20,13 @@ class StokController extends Controller
     {
         $request->validate([
             'produk_id' => 'required|exists:produk,id',
+            'batch_id' => 'required|exists:batch,id',
             'jumlah' => 'required|integer|min:1',
             'catatan' => 'nullable|string',
             'tanggal' => 'required|date',
         ]);
 
+        $batch = Batch::findOrFail($request->batch_id);
         $produk = Produk::findOrFail($request->produk_id);
         $user = Auth::user();
 
@@ -34,6 +37,10 @@ class StokController extends Controller
             $stokSebelum = $produk->stok;
             $stokSesudah = $stokSebelum + $request->jumlah;
 
+            // Update stok batch
+            $batch->stok_saat_ini += $request->jumlah;
+            $batch->save();
+
             // Update stok produk
             $produk->stok = $stokSesudah;
             $produk->save();
@@ -41,7 +48,9 @@ class StokController extends Controller
             // Catat transaksi
             $transaksi = StokTransaksi::create([
                 'produk_id' => $produk->id,
+                'batch_id' => $batch->id,
                 'tipe' => 'masuk',
+                'scan_mode' => 'batch',
                 'jumlah' => $request->jumlah,
                 'stok_sebelum' => $stokSebelum,
                 'stok_sesudah' => $stokSesudah,
@@ -57,6 +66,7 @@ class StokController extends Controller
                 'message' => 'Stok berhasil ditambahkan',
                 'data' => [
                     'produk' => $produk->fresh(['kategori']),
+                    'batch' => $batch->fresh(),
                     'transaksi' => $transaksi,
                     'stok_baru' => $stokSesudah,
                 ]
@@ -78,14 +88,23 @@ class StokController extends Controller
     {
         $request->validate([
             'produk_id' => 'required|exists:produk,id',
+            'batch_id' => 'required|exists:batch,id',
             'jumlah' => 'required|integer|min:1',
             'catatan' => 'nullable|string',
             'tanggal' => 'required|date',
         ]);
 
+        $batch = Batch::findOrFail($request->batch_id);
         $produk = Produk::findOrFail($request->produk_id);
 
-        // Cek stok mencukupi
+        // Cek stok batch mencukupi
+        if ($batch->stok_saat_ini < $request->jumlah) {
+            throw ValidationException::withMessages([
+                'jumlah' => ['Stok tidak mencukupi! Stok saat ini: ' . $batch->stok_saat_ini]
+            ]);
+        }
+
+        // Cek stok produk mencukupi
         if ($produk->stok < $request->jumlah) {
             throw ValidationException::withMessages([
                 'jumlah' => ['Stok tidak mencukupi! Stok saat ini: ' . $produk->stok]
@@ -100,6 +119,10 @@ class StokController extends Controller
             $stokSebelum = $produk->stok;
             $stokSesudah = $stokSebelum - $request->jumlah;
 
+            // Update stok batch
+            $batch->stok_saat_ini -= $request->jumlah;
+            $batch->save();
+
             // Update stok produk
             $produk->stok = $stokSesudah;
             $produk->save();
@@ -107,7 +130,9 @@ class StokController extends Controller
             // Catat transaksi
             $transaksi = StokTransaksi::create([
                 'produk_id' => $produk->id,
+                'batch_id' => $batch->id,
                 'tipe' => 'keluar',
+                'scan_mode' => 'batch',
                 'jumlah' => $request->jumlah,
                 'stok_sebelum' => $stokSebelum,
                 'stok_sesudah' => $stokSesudah,
