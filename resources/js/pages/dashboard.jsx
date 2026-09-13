@@ -11,6 +11,8 @@ import {
     ShoppingCart,
     Clock,
     ArrowRight,
+    ArrowDown,
+    ArrowUp,
     RefreshCw,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
@@ -27,7 +29,9 @@ export default function Dashboard() {
         produk_stok_menipis: 0,
         produk_stok_habis: 0,
     });
+    const [activities, setActivities] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [loadingActivities, setLoadingActivities] = useState(true);
     const [lastUpdated, setLastUpdated] = useState(null);
 
     useEffect(() => {
@@ -37,6 +41,7 @@ export default function Dashboard() {
             easing: 'ease-out-cubic',
         });
         fetchStats();
+        fetchActivities();
     }, []);
 
     const fetchStats = async () => {
@@ -72,6 +77,32 @@ export default function Dashboard() {
         }
     };
 
+    const fetchActivities = async () => {
+        setLoadingActivities(true);
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch('/api/dashboard/recent-activities', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+            });
+
+            const result = await response.json();
+            if (response.ok) {
+                setActivities(result.data || []);
+            } else {
+                console.error('API Error:', result.message);
+                setActivities([]);
+            }
+        } catch (error) {
+            console.error('Error fetching activities:', error);
+            setActivities([]);
+        } finally {
+            setLoadingActivities(false);
+        }
+    };
+
     const formatTime = (date) => {
         if (!date) return '-';
         try {
@@ -82,6 +113,19 @@ export default function Dashboard() {
             });
         } catch {
             return '-';
+        }
+    };
+
+    const formatTimeShort = (date) => {
+        if (!date) return '-';
+        try {
+            const d = new Date(date);
+            return d.toLocaleTimeString('id-ID', {
+                hour: '2-digit',
+                minute: '2-digit',
+            });
+        } catch {
+            return date;
         }
     };
 
@@ -260,43 +304,6 @@ export default function Dashboard() {
             </div>
             
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mt-6">
-                <div
-                    data-aos="fade-up"
-                    data-aos-delay="300"
-                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
-                >
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
-                        <Clock className="w-5 h-5 text-gray-500" />
-                        Aktivitas Terbaru
-                    </h3>
-
-                    {/* Mobile View (1 kolom) */}
-                    <div className="block sm:hidden">
-                        <div className="text-center py-6">
-                            <ShoppingCart className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
-                            <p className="text-gray-500 dark:text-gray-400 text-sm">
-                                Belum ada aktivitas hari ini
-                            </p>
-                            <p className="text-xs text-gray-400 dark:text-gray-500 mt-1">
-                                Aktivitas stok akan muncul di sini
-                            </p>
-                        </div>
-                    </div>
-
-                    {/* Desktop View (2 kolom) */}
-                    <div className="hidden sm:block">
-                        <div className="text-center py-8">
-                            <ShoppingCart className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
-                            <p className="text-gray-500 dark:text-gray-400">
-                                Belum ada aktivitas hari ini
-                            </p>
-                            <p className="text-sm text-gray-400 dark:text-gray-500 mt-1">
-                                Aktivitas stok akan muncul di sini
-                            </p>
-                        </div>
-                    </div>
-                </div>
-
                 {/* Quick Actions - MOBILE VS DESKTOP */}
                 <div
                     data-aos="fade-up"
@@ -348,6 +355,96 @@ export default function Dashboard() {
                         ))}
                     </div>
                 </div>
+
+                {/* Aktivitas Terbaru */}
+                <div
+                    data-aos="fade-up"
+                    data-aos-delay="400"
+                    className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-4 sm:p-6"
+                >
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white flex items-center gap-2">
+                            <Clock className="w-5 h-5 text-gray-500" />
+                            Aktivitas Terbaru
+                        </h3>
+                        <Link
+                            to="/stok"
+                            className="text-sm text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 flex items-center gap-1"
+                        >
+                            Lihat Semua
+                            <ArrowRight className="w-4 h-4" />
+                        </Link>
+                    </div>
+                                    
+                    {loadingActivities ? (
+                        <div className="flex items-center justify-center py-8">
+                            <div className="w-8 h-8 border-4 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                        </div>
+                    ) : activities.length === 0 ? (
+                        <div className="text-center py-8">
+                            <ShoppingCart className="w-12 h-12 text-gray-300 dark:text-gray-600 mx-auto mb-3" />
+                            <p className="text-gray-500 dark:text-gray-400 text-sm">
+                                Belum ada aktivitas stok
+                            </p>
+                        </div>
+                    ) : (
+                        
+                        //  UNTUK MOBILE
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                            {activities.map((item, index) => (
+                                <div
+                                    key={item.id}
+                                    data-aos="fade-up"
+                                    data-aos-delay={index * 50}
+                                    className="flex items-center gap-3 p-3 rounded-lg bg-gray-50 dark:bg-gray-700/30 hover:bg-gray-100 dark:hover:bg-gray-700/50 transition-colors border border-gray-100 dark:border-gray-700"
+                                >
+                                    {/* Icon */}
+                                    <div className={`p-2 rounded-lg flex-shrink-0 ${
+                                        item.tipe === 'masuk'
+                                            ? 'bg-green-100 dark:bg-green-900/30'
+                                            : 'bg-red-100 dark:bg-red-900/30'
+                                    }`}>
+                                        {item.tipe === 'masuk' ? (
+                                            <ArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+                                        ) : (
+                                            <ArrowDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                        )}
+                                    </div>
+                                    
+                                    {/* Info */}
+                                    <div className="flex-1 min-w-0">
+                                        <p className="font-medium text-sm text-gray-900 dark:text-white truncate">
+                                            {item.produk?.nama_produk || '-'}
+                                        </p>
+                                        <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400 flex-wrap">
+                                            <span className={`font-semibold ${item.tipe === 'masuk' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                {item.tipe === 'masuk' ? '+' : '-'}{item.jumlah}
+                                            </span>
+                                            <span>pcs</span>
+                                            {item.batch && (
+                                                <>
+                                                    <span>•</span>
+                                                    <span>Batch #{item.batch.id}</span>
+                                                </>
+                                            )}
+                                        </div>
+                                    </div>
+                                        
+                                    {/* Waktu & User */}
+                                    <div className="text-right flex-shrink-0">
+                                        <p className="text-xs text-gray-500 dark:text-gray-400">
+                                            {formatTimeShort(item.tanggal)}
+                                        </p>
+                                        <p className="text-xs text-gray-400 dark:text-gray-500 truncate max-w-[60px]">
+                                            {item.user?.name || '-'}
+                                        </p>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+
             </div>
 
             {/*  FOOTER DASHBOARD  */}

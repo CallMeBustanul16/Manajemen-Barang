@@ -10,7 +10,9 @@ import {
     ChevronLeft,
     ChevronRight,
     RefreshCw,
-    QrCode
+    QrCode,
+    History,
+    Eye,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -21,6 +23,7 @@ export default function BatchHome() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
+    const [filterProduk, setFilterProduk] = useState('');
     const perPage = 10;
 
     useEffect(() => {
@@ -133,6 +136,50 @@ export default function BatchHome() {
         currentPage * perPage
     );
 
+    const handleExport = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const url = filterProduk 
+                ? `/api/batch/export/excel?produk_id=${filterProduk}`
+                : '/api/batch/export/excel';
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                Swal.fire('Error', data.message || 'Gagal export data', 'error');
+                return;
+            }
+
+            // Download file
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `batch-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'File Excel berhasil diunduh.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            Swal.fire('Error', 'Gagal export data', 'error');
+        }
+    };
+
     if (loading && currentPage === 1) {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
@@ -157,6 +204,8 @@ export default function BatchHome() {
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-2">
+
+                    {/* Refresh */}
                     <button
                         onClick={fetchBatches}
                         className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
@@ -164,6 +213,17 @@ export default function BatchHome() {
                     >
                         <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
                     </button>
+
+                    <button
+                        onClick={handleExport}
+                        className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base rounded-lg transition-colors"
+                    >
+                        <Download className="w-4 h-4" />
+                        <span className="hidden xs:inline">Export Excel</span>
+                        <span className="xs:hidden">Export</span>
+                    </button>
+
+                    {/* Tambah Batch */}
                     <Link
                         to="/batch/create"
                         className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base rounded-lg transition-colors"
@@ -175,18 +235,45 @@ export default function BatchHome() {
                 </div>
             </div>
 
-            {/* Search */}
-            <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
-                <input
-                    type="text"
-                    placeholder="Cari batch (produk, QR Code, lokasi)..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                />
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+                <div className="relative flex-1">
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                    <input
+                        type="text"
+                        placeholder="Cari batch (produk, QR Code, lokasi)..."
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                        className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    />
+                </div>
+            
+                <div className="flex gap-2">
+                    <select
+                        value={filterProduk}
+                        onChange={(e) => setFilterProduk(e.target.value)}
+                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                    >
+                        <option value="">Semua Produk</option>
+                        {/* Ambil daftar produk unik dari data batch */}
+                        {[...new Set(batches.map(b => b.produk?.id))].map(id => {
+                            const produk = batches.find(b => b.produk?.id === id)?.produk;
+                            return produk ? (
+                                <option key={id} value={id}>{produk.nama_produk}</option>
+                            ) : null;
+                        })}
+                    </select>
+                    <button
+                        onClick={() => {
+                            setFilterProduk('');
+                            setSearch('');
+                        }}
+                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                    >
+                        Reset
+                    </button>
+                </div>
             </div>
-
+            
             {/* Table */}
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
                 {paginatedData.length === 0 ? (
@@ -251,6 +338,25 @@ export default function BatchHome() {
                                             </td>
                                             <td className="px-4 py-3">
                                                 <div className="flex items-center justify-center gap-1 sm:gap-2">
+                                                    {/* Tombol Detail */}
+                                                    <Link
+                                                        to={`/batch/detail/${item.id}`}
+                                                        className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                        title="Detail"
+                                                    >
+                                                        <Eye className="w-4 h-4" />
+                                                    </Link>
+
+                                                    {/* Tombol History */}
+                                                    <Link
+                                                        to={`/batch/history/${item.id}`}
+                                                        className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
+                                                        title="Riwayat"
+                                                    >
+                                                        <History className="w-4 h-4" />
+                                                    </Link>
+
+                                                    {/* Download QR */}
                                                     <button
                                                         onClick={() => handleDownloadQr(item.id)}
                                                         className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -258,6 +364,8 @@ export default function BatchHome() {
                                                     >
                                                         <Download className="w-4 h-4" />
                                                     </button>
+
+                                                    {/* Tombol Edit */}
                                                     <Link
                                                         to={`/batch/edit/${item.id}`}
                                                         className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
@@ -265,6 +373,8 @@ export default function BatchHome() {
                                                     >
                                                         <Edit className="w-4 h-4" />
                                                     </Link>
+
+                                                    {/* Tombol Hapus */}
                                                     <button
                                                         onClick={() => handleDelete(item.id, item.produk?.nama_produk)}
                                                         className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"

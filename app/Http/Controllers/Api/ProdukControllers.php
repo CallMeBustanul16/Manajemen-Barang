@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Produk;
+use App\Models\StokTransaksi;
 use App\Http\Resources\ProdukResource;
 use App\Http\Requests\MemintaProduk;
 use Illuminate\Http\Request;
@@ -71,6 +72,35 @@ class ProdukControllers extends Controller
         return response()->json([
             'success' => true,
             'message' => 'Data produk berhasil dihapus'
+        ]);
+    }
+
+        /**
+     * GET /api/produk/{id}/history
+     * Riwayat transaksi untuk produk tertentu
+     */
+    public function history($id)
+    {
+        $produk = Produk::with(['kategori'])->find($id);
+
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
+        }
+
+        $history = StokTransaksi::with(['user', 'batch'])
+            ->where('produk_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'produk' => $produk,
+                'history' => $history,
+            ]
         ]);
     }
 }

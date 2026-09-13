@@ -9,6 +9,7 @@ use App\Http\Controllers\Api\StokController;
 use App\Http\Controllers\Api\QrController;
 use App\Http\Controllers\Api\BatchController;
 use App\Exports\StokExport;
+use App\Exports\BatchExports;
 use Maatwebsite\Excel\Facades\Excel;
 
 // Route Auth
@@ -41,6 +42,40 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::apiResource('batch', BatchController::class);
     Route::get('/batch/scan/{qrCode}', [BatchController::class, 'scan']);
     Route::get('/batch/produk/{produkId}/batches', [BatchController::class, 'getBatchesByProduk']);
+
+    // History
+    Route::get('/batch/{id}/history', [BatchController::class, 'history']);
+    Route::get('/produk/{id}/history', [ProdukControllers::class, 'history']);
+
+    // Export
+    Route::get('/batch/export/excel', function (Request $request) {
+        $produkId = $request->query('produk_id');
+        $date = now()->format('Y-m-d');
+        $filename = "Laporan-Batch-{$date}.xlsx";
+        
+        return Excel::download(new BatchExports($produkId), $filename);
+    });
+
+    Route::get('/stok/export/excel', function (Request $request) {
+        $startDate = $request->start_date;
+        $endDate = $request->end_date;
+
+        return Excel::download(new StokExport($startDate, $endDate), 'Laporan-Stok.xlsx');
+    });
+
+    // Dashboard Aktivitas
+    Route::get('/dashboard/recent-activities', function () {
+        $activities = \App\Models\StokTransaksi::with(['produk', 'user', 'batch'])
+            ->orderBy('tanggal', 'desc')
+            ->orderBy('created_at', 'desc')
+            ->limit(10)
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => $activities,
+        ]);
+    });
 });
 
 // Route API untuk kategori, pemasok, dan produk
@@ -74,15 +109,6 @@ Route::get('/dashboard/low-stock', function () {
         'success' => true,
         'data' => $products,
     ]);
-})->middleware('auth:sanctum');
-
-
-// API untuk export
-Route::get('/stok/export/excel', function (Request $request) {
-    $startDate = $request->start_date;
-    $endDate = $request->end_date;
-
-    return Excel::download(new StokExport($startDate, $endDate), 'laporan-stok.xlsx');
 })->middleware('auth:sanctum');
 
 Route::get('/dashboard/stats', function() {

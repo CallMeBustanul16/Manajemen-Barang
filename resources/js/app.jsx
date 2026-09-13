@@ -53,6 +53,10 @@ import EditBatch from './pages/Batch/Edit';
 // Import Scanner
 import ScannerHome from './pages/Scanner/Index';
 
+// Import Batch
+import BatchRiwayat from './pages/Batch/History';
+import BatchDetail from './pages/Batch/Detail';
+
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
 
@@ -93,6 +97,8 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+
+                {/* Kategori */}
                 <Route path="/kategori" element={
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
@@ -114,6 +120,8 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+
+                {/* Pemasok */}
                 <Route path="/pemasok" element={
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
@@ -135,6 +143,8 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+
+                {/* Produk */}
                 <Route path="/produk" element={
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
@@ -156,6 +166,8 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+
+                {/* Stok */}
                 <Route path="/stok" element={
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
@@ -177,6 +189,8 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+
+                {/* Batch */}
                 <Route path="/batch" element={
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
@@ -198,6 +212,22 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+                <Route path="/batch/History/:id" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <BatchRiwayat />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/batch/Detail/:id" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <BatchDetail />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+
+                {/* Scan */}
                 <Route path="/scan" element={
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
@@ -205,7 +235,6 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
-
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </BrowserRouter>

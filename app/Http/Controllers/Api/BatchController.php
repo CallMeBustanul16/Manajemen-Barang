@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Produk;
+use App\Models\StokTransaksi;
 use App\Services\QrCodeService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Validator;
@@ -256,6 +257,35 @@ class BatchController extends Controller
                 'batches' => $batches,
                 'total_stok' => $produk->stok,
             ],
+        ]);
+    }
+
+        /**
+     * GET /api/batch/{id}/history
+     * Riwayat transaksi untuk batch tertentu
+     */
+    public function history($id)
+    {
+        $batch = Batch::with(['produk'])->find($id);
+
+        if (!$batch) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch tidak ditemukan'
+            ], 404);
+        }
+
+        $history = StokTransaksi::with(['user'])
+            ->where('batch_id', $id)
+            ->orderBy('created_at', 'desc')
+            ->get();
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'batch' => $batch,
+                'history' => $history,
+            ]
         ]);
     }
 }
