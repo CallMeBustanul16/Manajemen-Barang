@@ -11,7 +11,7 @@ use Maatwebsite\Excel\Concerns\WithStyles;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class BatchExport implements FromCollection, WithHeadings, WithMapping, WithStyles
+class BatchExports implements FromCollection, WithHeadings, WithMapping, WithStyles
 {
     protected $produkId;
 

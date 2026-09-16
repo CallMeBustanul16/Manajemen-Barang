@@ -87,7 +87,7 @@ export default function EditKategori() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data kategori...</p>
                 </div>
             </div>
@@ -124,7 +124,7 @@ export default function EditKategori() {
                             name="nama_kategori"
                             value={formData.nama_kategori}
                             onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                            className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                 errors.nama_kategori ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                             }`}
                             required
@@ -160,7 +160,7 @@ export default function EditKategori() {
                             value={formData.deskripsi}
                             onChange={handleChange}
                             rows="4"
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
                         />
                         {errors.deskripsi && (
                             <p className="mt-1 text-sm text-red-500">{errors.deskripsi[0]}</p>
@@ -171,7 +171,7 @@ export default function EditKategori() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save className="w-5 h-5" />
                             {saving ? 'Menyimpan...' : 'Perbarui'}

@@ -2,6 +2,7 @@
 use Illuminate\Support\Facades\Route;
 use Illuminate\Http\Request;
 use App\Http\Controllers\Api\AuthController;
+use App\Http\Controllers\Api\UserController;
 use App\Http\Controllers\Api\KategoriControllers;
 use App\Http\Controllers\Api\PemasokControllers;
 use App\Http\Controllers\Api\ProdukControllers;
@@ -10,17 +11,15 @@ use App\Http\Controllers\Api\QrController;
 use App\Http\Controllers\Api\BatchController;
 use App\Exports\StokExport;
 use App\Exports\BatchExports;
+use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 
-// Route Auth
-Route::post('/register', [AuthController::class, 'register']);
-Route::post('/login', [AuthController::class, 'login']);
-Route::post('/forgot-password', [AuthController::class, 'forgotPassword']);  
-Route::post('/reset-password', [AuthController::class, 'resetPassword']);
-
+// Route Gabungan
 Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
+    Route::apiResource('users', UserController::class);
 
     // Stok masuk-keluar-transaksi
     Route::post('/stok/masuk', [StokController::class, 'masuk']);
@@ -61,6 +60,72 @@ Route::middleware('auth:sanctum')->group(function () {
         $endDate = $request->end_date;
 
         return Excel::download(new StokExport($startDate, $endDate), 'Laporan-Stok.xlsx');
+    });
+
+    Route::get('/stok/export/excel', function (Request $request) {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $tipe = $request->query('tipe');
+        $produkId = $request->query('produk_id');
+    
+        return Excel::download(
+            new StokExport($startDate, $endDate, $tipe, $produkId),
+            'laporan-stok-' . now()->format('Y-m-d') . '.xlsx'
+        );
+    });
+
+    Route::get('/stok/export/pdf', function (Request $request) {
+        $startDate = $request->query('start_date');
+        $endDate = $request->query('end_date');
+        $tipe = $request->query('tipe');
+        $produkId = $request->query('produk_id');
+
+        // Query transaksi
+        $query = \App\Models\StokTransaksi::with(['produk', 'user', 'batch']);
+
+        if ($startDate) {
+            $query->whereDate('tanggal', '>=', $startDate);
+        }
+        if ($endDate) {
+            $query->whereDate('tanggal', '<=', $endDate);
+        }
+        if ($tipe) {
+            $query->where('tipe', $tipe);
+        }
+        if ($produkId) {
+            $query->where('produk_id', $produkId);
+        }
+
+        $transactions = $query->orderBy('tanggal', 'desc')->get();
+
+        // Hitung ringkasan
+        $totalMasuk = $transactions->where('tipe', 'masuk')->sum('jumlah');
+        $totalKeluar = $transactions->where('tipe', 'keluar')->sum('jumlah');
+
+        // Nama produk (jika filter)
+        $produkNama = null;
+        if ($produkId) {
+            $produkNama = \App\Models\Produk::find($produkId)?->nama_produk;
+        }
+
+        $data = [
+            'startDate' => $startDate ? \Carbon\Carbon::parse($startDate)->format('d/m/Y') : '-',
+            'endDate' => $endDate ? \Carbon\Carbon::parse($endDate)->format('d/m/Y') : '-',
+            'tipe' => $tipe,
+            'produkNama' => $produkNama,
+            'transactions' => $transactions,
+            'totalTransaksi' => $transactions->count(),
+            'totalMasuk' => $totalMasuk,
+            'totalKeluar' => $totalKeluar,
+            'selisih' => $totalMasuk - $totalKeluar,
+        ];
+
+        $pdf = Pdf::loadView('pdf.laporan-stok', $data)
+            ->setPaper('a4', 'portrait');
+
+        $filename = 'laporan-stok-' . ($startDate ?? 'all') . '-' . ($endDate ?? 'all') . '.pdf';
+
+        return $pdf->download($filename);
     });
 
     // Dashboard Aktivitas

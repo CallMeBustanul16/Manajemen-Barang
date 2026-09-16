@@ -83,7 +83,7 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                     {/* Scan QR (Khusus HP / Mobile Only) */}
                     <button
                         onClick={() => navigate('/scan')}
-                        className="lg:hidden p-1.5 rounded transition-colors bg-blue-600 hover:bg-blue-700 text-white flex items-center justify-center"
+                        className="lg:hidden p-1.5 rounded transition-colors bg-red-600 hover:bg-red-700 text-white flex items-center justify-center"
                         aria-label="Scan QR Code"
                         title="Scan QR Code"
                     >

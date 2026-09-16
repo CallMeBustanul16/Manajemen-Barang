@@ -13,7 +13,6 @@ export default function BuatProduk() {
     const [formData, setFormData] = useState({
         nama_produk: '',
         deskripsi: '',
-        harga: '',
         sku: '',
         stok: '',
         stok_minimal: '2',
@@ -59,7 +58,6 @@ export default function BuatProduk() {
         try {
             await produkAPI.create({
                 ...formData,
-                harga: parseFloat(formData.harga),
                 stok: parseInt(formData.stok),
                 stok_minimal: parseInt(formData.stok_minimal),
             });
@@ -214,32 +212,6 @@ export default function BuatProduk() {
                                 <p className="mt-1 text-sm text-red-500">{errors.pemasok_id[0]}</p>
                             )}
                         </div>
-                    </div>
-
-                    {/* Harga */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Harga <span className="text-red-500">*</span>
-                        </label>
-                        <div className="relative">
-                            <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
-                            <input
-                                type="number"
-                                name="harga"
-                                value={formData.harga}
-                                onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
-                                    errors.harga ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
-                                }`}
-                                placeholder="0"
-                                min="0"
-                                step="1000"
-                                required
-                            />
-                        </div>
-                        {errors.harga && (
-                            <p className="mt-1 text-sm text-red-500">{errors.harga[0]}</p>
-                        )}
                     </div>
 
                     {/* Stok & Stok Minimal */}

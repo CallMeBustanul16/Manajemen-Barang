@@ -164,7 +164,7 @@ export default function BatchDetail() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data batch...</p>
                 </div>
             </div>
@@ -176,7 +176,7 @@ export default function BatchDetail() {
             <div className="text-center py-12">
                 <Package className="w-16 h-16 text-gray-300 dark:text-gray-600 mx-auto mb-4" />
                 <p className="text-gray-500 dark:text-gray-400">Batch tidak ditemukan</p>
-                <Link to="/batch" className="mt-4 inline-block text-blue-600 hover:text-blue-700">
+                <Link to="/batch" className="mt-4 inline-block text-red-600 hover:text-red-700">
                     ← Kembali ke Daftar Batch
                 </Link>
             </div>
@@ -214,7 +214,7 @@ export default function BatchDetail() {
                     </button>
                     <button
                         onClick={handleDownloadQr}
-                        className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors"
+                        className="inline-flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors"
                     >
                         <Download className="w-4 h-4" />
                         Download QR

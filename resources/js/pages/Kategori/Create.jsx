@@ -92,7 +92,7 @@ export default function BuatKategori() {
                             name="nama_kategori"
                             value={formData.nama_kategori}
                             onChange={handleChange}
-                            className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                            className={`w-full px-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                 errors.nama_kategori ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                             }`}
                             placeholder="Contoh: Elektronik"
@@ -135,7 +135,7 @@ export default function BuatKategori() {
                             value={formData.deskripsi}
                             onChange={handleChange}
                             rows="4"
-                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                            className="w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
                             placeholder="Deskripsi kategori (opsional)"
                         />
                         {errors.deskripsi && (
@@ -148,7 +148,7 @@ export default function BuatKategori() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save className="w-5 h-5" />
                             {loading ? 'Menyimpan...' : 'Tersimpan'}

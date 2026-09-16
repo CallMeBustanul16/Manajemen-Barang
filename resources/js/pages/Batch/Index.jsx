@@ -184,7 +184,7 @@ export default function BatchHome() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data batch...</p>
                 </div>
             </div>
@@ -226,7 +226,7 @@ export default function BatchHome() {
                     {/* Tambah Batch */}
                     <Link
                         to="/batch/create"
-                        className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-blue-600 hover:bg-blue-700 text-white text-sm sm:text-base rounded-lg transition-colors"
+                        className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white text-sm sm:text-base rounded-lg transition-colors"
                     >
                         <Plus className="w-4 h-4" />
                         <span className="hidden xs:inline">Tambah Batch</span>
@@ -243,7 +243,7 @@ export default function BatchHome() {
                         placeholder="Cari batch (produk, QR Code, lokasi)..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                        className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
                     />
                 </div>
             
@@ -251,7 +251,7 @@ export default function BatchHome() {
                     <select
                         value={filterProduk}
                         onChange={(e) => setFilterProduk(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
                     >
                         <option value="">Semua Produk</option>
                         {/* Ambil daftar produk unik dari data batch */}
@@ -341,7 +341,7 @@ export default function BatchHome() {
                                                     {/* Tombol Detail */}
                                                     <Link
                                                         to={`/batch/detail/${item.id}`}
-                                                        className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                                         title="Detail"
                                                     >
                                                         <Eye className="w-4 h-4" />
@@ -359,7 +359,7 @@ export default function BatchHome() {
                                                     {/* Download QR */}
                                                     <button
                                                         onClick={() => handleDownloadQr(item.id)}
-                                                        className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                                         title="Download QR"
                                                     >
                                                         <Download className="w-4 h-4" />
@@ -368,7 +368,7 @@ export default function BatchHome() {
                                                     {/* Tombol Edit */}
                                                     <Link
                                                         to={`/batch/edit/${item.id}`}
-                                                        className="p-1.5 sm:p-2 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 rounded-lg transition-colors"
+                                                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                                                         title="Edit"
                                                     >
                                                         <Edit className="w-4 h-4" />

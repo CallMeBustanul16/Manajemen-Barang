@@ -26,7 +26,6 @@ class MemintaProduk extends FormRequest
         return [
             'nama_produk' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
-            'harga' => 'required|numeric|min:0',
             'sku' => 'required|string|unique:produk,sku',
             'stok' => 'required|integer|min:0',
             'stok_minimal' => 'required|integer|min:0',
@@ -42,9 +41,6 @@ class MemintaProduk extends FormRequest
             'nama_produk.string' => 'Nama produk harus berupa teks.',
             'nama_produk.max' => 'Nama produk tidak boleh lebih dari 255 karakter.',
             'deskripsi.string' => 'Deskripsi harus berupa teks.',
-            'harga.required' => 'Harga wajib diisi.',
-            'harga.numeric' => 'Harga harus berupa angka.',
-            'harga.min' => 'Harga tidak boleh kurang dari 0.',
             'stok.required' => 'Stok wajib diisi.',
             'stok.integer' => 'Stok harus berupa angka.',
             'stok.min' => 'Stok tidak boleh kurang dari 0.',

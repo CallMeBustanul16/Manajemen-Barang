@@ -83,7 +83,7 @@ export default function BuatPemasok() {
                                 name="nama_pemasok"
                                 value={formData.nama_pemasok}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.nama_pemasok ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 placeholder="Contoh: PT Sumber Makmur"
@@ -107,7 +107,7 @@ export default function BuatPemasok() {
                                 name="email"
                                 value={formData.email}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.email ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 placeholder="email@pemasok.com"
@@ -130,7 +130,7 @@ export default function BuatPemasok() {
                                 name="telepon"
                                 value={formData.telepon}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.telepon ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 placeholder="021-1234567"
@@ -153,7 +153,7 @@ export default function BuatPemasok() {
                                 value={formData.alamat}
                                 onChange={handleChange}
                                 rows="3"
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.alamat ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 placeholder="Jl. Raya No. 123, Jakarta"
@@ -169,7 +169,7 @@ export default function BuatPemasok() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save className="w-5 h-5" />
                             {loading ? 'Menyimpan...' : 'Simpan'}

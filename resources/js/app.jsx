@@ -19,11 +19,8 @@ import * as anime from 'animejs';
 
 // Import Halaman
 import Login from './pages/Auth/login';
-import Register from './pages/Auth/register';
 import Dashboard from './pages/dashboard';
 import MainLayout from './layouts/MainLayout';
-import ForgotPassword from './pages/Auth/forgotPassword';
-import ResetPassword from './pages/Auth/resetPassword';
 
 // Import Halaman Kategori
 import KategoriHome from './pages/Kategori/Index';
@@ -57,6 +54,9 @@ import ScannerHome from './pages/Scanner/Index';
 import BatchRiwayat from './pages/Batch/History';
 import BatchDetail from './pages/Batch/Detail';
 
+// Import Laporan
+import HomeLaporan from './pages/Laporan/Index';
+
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
 
@@ -78,9 +78,6 @@ function AppContent() {
             <Routes>
                 {/* Auth Routes (Tanpa Layout) */}
                 <Route path="/login" element={<Login />} />
-                <Route path="/register" element={<Register />} />
-                <Route path="/forgot-password" element={<ForgotPassword />} />
-                <Route path="/reset-password" element={<ResetPassword />} />
 
                 {/* Protected Routes (Dengan Layout) */}
                 <Route path="/" element={
@@ -232,6 +229,15 @@ function AppContent() {
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <ScannerHome />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+
+                {/* Laporan */}
+                <Route path="/laporan" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <HomeLaporan />
                         </MainLayout>
                     </PrivateRoute>
                 } />

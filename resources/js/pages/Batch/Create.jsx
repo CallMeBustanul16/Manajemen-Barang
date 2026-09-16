@@ -116,7 +116,7 @@ export default function BuatBatch() {
                                 name="produk_id"
                                 value={formData.produk_id}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors appearance-none ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors appearance-none ${
                                     errors.produk_id ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 required
@@ -146,7 +146,7 @@ export default function BuatBatch() {
                                 name="jumlah_awal"
                                 value={formData.jumlah_awal}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.jumlah_awal ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 placeholder="Contoh: 50"
@@ -171,7 +171,7 @@ export default function BuatBatch() {
                                 name="tanggal_masuk"
                                 value={formData.tanggal_masuk}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.tanggal_masuk ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 required
@@ -194,7 +194,7 @@ export default function BuatBatch() {
                                 name="tanggal_kadaluarsa"
                                 value={formData.tanggal_kadaluarsa}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
                             />
                         </div>
                         {errors.tanggal_kadaluarsa && (
@@ -214,7 +214,7 @@ export default function BuatBatch() {
                                 name="lokasi_rak"
                                 value={formData.lokasi_rak}
                                 onChange={handleChange}
-                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                                className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
                                 placeholder="Contoh: Rak A1"
                             />
                         </div>
@@ -228,7 +228,7 @@ export default function BuatBatch() {
                         <button
                             type="submit"
                             disabled={loading}
-                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save className="w-5 h-5" />
                             {loading ? 'Menyimpan...' : 'Simpan Batch'}

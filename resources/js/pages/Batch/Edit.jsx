@@ -103,7 +103,7 @@ export default function EditBatch() {
         return (
             <div className="flex items-center justify-center min-h-[60vh]">
                 <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
+                    <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
                     <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data batch...</p>
                 </div>
             </div>
@@ -128,7 +128,7 @@ export default function EditBatch() {
 
             {/* Info Batch */}
             {batch && (
-                <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-800">
+                <div className="bg-red-50 dark:bg-red-900/20 p-4 rounded-lg border border-red-200 dark:border-red-800">
                     <div className="grid grid-cols-2 gap-2 text-sm">
                         <div>
                             <span className="text-gray-500 dark:text-gray-400">Produk:</span>
@@ -172,7 +172,7 @@ export default function EditBatch() {
                                 name="lokasi_rak"
                                 value={formData.lokasi_rak}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.lokasi_rak ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                                 placeholder="Contoh: Rak A1"
@@ -195,7 +195,7 @@ export default function EditBatch() {
                                 name="tanggal_kadaluarsa"
                                 value={formData.tanggal_kadaluarsa}
                                 onChange={handleChange}
-                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors ${
+                                className={`w-full pl-10 pr-4 py-2 border rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors ${
                                     errors.tanggal_kadaluarsa ? 'border-red-500' : 'border-gray-300 dark:border-gray-600'
                                 }`}
                             />
@@ -210,7 +210,7 @@ export default function EditBatch() {
                         <button
                             type="submit"
                             disabled={saving}
-                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                            className="inline-flex items-center gap-2 px-6 py-2.5 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                         >
                             <Save className="w-5 h-5" />
                             {saving ? 'Menyimpan...' : 'Perbarui Batch'}

@@ -79,7 +79,7 @@ export default function Dashboard() {
     const formatDateTime = (dateString) => dateString ? new Date(dateString).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-';
 
     const statCards = [
-        { title: 'Total Produk', value: stats.total_produk, icon: Package, border: 'border-l-4 border-l-blue-600' },
+        { title: 'Total Produk', value: stats.total_produk, icon: Package, border: 'border-l-4 border-l-red-600' },
         { title: 'Total Kategori', value: stats.total_kategori, icon: Tag, border: 'border-l-4 border-l-emerald-600' },
         { title: 'Total Pemasok', value: stats.total_pemasok, icon: Truck, border: 'border-l-4 border-l-purple-600' },
         { title: 'Stok Menipis', value: stats.produk_stok_menipis, icon: AlertTriangle, border: 'border-l-4 border-l-amber-500', isWarning: stats.produk_stok_menipis > 0 },
@@ -154,14 +154,14 @@ export default function Dashboard() {
                 {/* Actions (Compact Column) */}
                 <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-4">
                     <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                        <Box className="w-4 h-4 text-blue-600" /> Aksi Cepat
+                        <Box className="w-4 h-4 text-red-600" /> Aksi Cepat
                     </h3>
                     <div className="grid grid-cols-2 gap-2">
                         {quickActions.map((action, idx) => (
                             <Link
                                 key={idx}
                                 to={action.to}
-                                className="flex flex-col items-center justify-center p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-blue-500 hover:bg-blue-50/50 dark:hover:bg-gray-700 transition-colors text-center"
+                                className="flex flex-col items-center justify-center p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-red-500 hover:bg-red-50/50 dark:hover:bg-gray-700 transition-colors text-center"
                             >
                                 <action.icon className="w-5 h-5 text-gray-700 dark:text-gray-300 mb-1" />
                                 <span className="text-xs font-medium text-gray-800 dark:text-gray-200">{action.label}</span>
@@ -175,9 +175,9 @@ export default function Dashboard() {
                     <div>
                         <div className="flex justify-between items-center mb-3">
                             <h3 className="text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                                <Clock className="w-4 h-4 text-blue-600" /> Log Aktivitas Terakhir
+                                <Clock className="w-4 h-4 text-red-600" /> Log Aktivitas Terakhir
                             </h3>
-                            <Link to="/stok" className="text-xs font-semibold text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1">
+                            <Link to="/stok" className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1">
                                 Lihat Semua <ArrowRight className="w-3 h-3" />
                             </Link>
                         </div>

@@ -64,7 +64,7 @@ export default function Sidebar({ isOpen, onClose, darkMode }) {
                     <div className={`flex items-center gap-2.5 px-4 h-14 border-b ${
                         darkMode ? 'border-gray-800' : 'border-gray-200'
                     }`}>
-                        <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+                        <Package className="w-5 h-5 text-red-600 dark:text-red-400" />
                         <span className="text-sm font-bold tracking-wider uppercase">
                             Manajemen Barang
                         </span>
@@ -81,7 +81,7 @@ export default function Sidebar({ isOpen, onClose, darkMode }) {
                                     className={({ isActive }) => `
                                         flex items-center gap-3 px-3 py-2 rounded text-xs font-medium transition-colors
                                         ${isActive 
-                                            ? 'bg-blue-600 text-white font-semibold' 
+                                            ? 'bg-red-600 text-white font-semibold' 
                                             : darkMode 
                                                 ? 'text-gray-300 hover:bg-gray-800' 
                                                 : 'text-gray-700 hover:bg-gray-100'

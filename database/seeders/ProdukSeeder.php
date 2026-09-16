@@ -16,7 +16,6 @@ class ProdukSeeder extends Seeder
             [
                 'nama_produk' => 'Smartphone XYZ',
                 'deskripsi' => 'Smartphone terbaru dengan fitur canggih.',
-                'harga' => 5000000.00,
                 'sku' => 'XYZ123',
                 'stok' => 50,
                 'stok_minimal' => 5,
@@ -26,7 +25,6 @@ class ProdukSeeder extends Seeder
             [
                 'nama_produk' => 'Baju Kemeja Pria',
                 'deskripsi' => 'Kemeja pria dengan bahan berkualitas.',
-                'harga' => 200000.00,
                 'sku' => 'KEMEJA001',
                 'stok' => 100,
                 'stok_minimal' => 10,
@@ -36,7 +34,6 @@ class ProdukSeeder extends Seeder
             [
                 'nama_produk' => 'Cokelat Premium',
                 'deskripsi' => 'Cokelat premium dengan rasa lezat.',
-                'harga' => 150000.00,
                 'sku' => 'COKELAT001',
                 'stok' => 200,
                 'stok_minimal' => 20,
@@ -46,7 +43,6 @@ class ProdukSeeder extends Seeder
             [
                 'nama_produk' => 'Lipstik Matte',
                 'deskripsi' => 'Lipstik matte dengan warna tahan lama.',
-                'harga' => 100000.00,
                 'sku' => 'LIPSTIK001',
                 'stok' => 150,
                 'stok_minimal' => 15,
@@ -56,7 +52,6 @@ class ProdukSeeder extends Seeder
             [
                 'nama_produk' => 'Buku Pelajaran Matematika',
                 'deskripsi' => 'Buku pelajaran matematika untuk tingkat sekolah menengah.',
-                'harga' => 75000.00,
                 'sku' => 'BUKU001',
                 'stok' => 80,
                 'stok_minimal' => 8,

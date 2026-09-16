@@ -14,32 +14,6 @@ use Laravel\Sanctum\Sanctum;
 
 class AuthController extends Controller
 {
-    // Bagian Register
-    public function register(Request $request) 
-    {
-        $validator = Validator::make($request->all(), [
-            'name' => 'required|string|max:255',
-            'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:8|confirmed',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'password' => Hash::make($request->password),
-        ]);
-
-        return response()->json([
-            'success' => true,
-            'message' => 'Selamat! Registrasi Anda telah berhasil!🥳',
-            'user' => $user
-        ], 201);
-    }
-
     // Bagian Login
     public function login(Request $request)
     {
@@ -52,10 +26,10 @@ class AuthController extends Controller
             return response()->json(['errors' => $validator->errors()], 422);
         }
 
-        if (!Auth::attempt($request->only('email', 'password'))) {
+        if (!Auth::guard('web')->attempt($request->only('email', 'password'))) {
             return response()->json([
                 'errors' => ['email' => ['Email atau Password salah!']]
-            ], 401);
+            ], 422);
         }
 
         $user = User::where('email', $request->email)->first();
@@ -74,7 +48,7 @@ class AuthController extends Controller
             ], 401);
         }
 
-        Auth::login($user);
+        Auth::guard('web')->login($user);
 
         // $user = Auth::user();
 
@@ -95,67 +69,6 @@ class AuthController extends Controller
             return response()->json(['message' => 'Login berhasil!']);
         }
         return response()->json(['message' => 'Sesi tidak ada yang aktif'], 401);
-    }
-
-    // Bagian LupaPassword
-    public function forgotPassword(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'email' => 'required|email|exists:users,email',
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $status = Password::sendResetLink(
-            $request->only('email')
-        );
-
-        if ($status === Password::RESET_LINK_SENT) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Link untuk mereset password telah dikirim ke email Kamu'
-            ]);
-        }
-
-        return response()->json([
-            'errors' => ['email' => ['Link untuk reset telah gagal dikirim! Harap coba lagi!']]
-        ], 500);
-    }
-
-    // Bagian ResetPassword
-    public function resetPassword(Request $request)
-    {
-        $validator = Validator::make($request->all(), [
-            'token' => 'required',
-            'email' => 'required|email',
-            'password' => 'required|min:8|confirmed'
-        ]);
-
-        if ($validator->fails()) {
-            return response()->json(['errors' => $validator->errors()], 422);
-        }
-
-        $status = Password::reset(
-            $request->only('email', 'password', 'password_confirmation', 'token'),
-            function ($user, $password) {
-                $user->forceFill([
-                    'password' => Hash::make($password)
-                ])->save();
-            }
-        );
-
-        if ($status === Password::PASSWORD_RESET) {
-            return response()->json([
-                'success' => true,
-                'message' => 'Passwordmu berhasil di reset!'
-            ]);
-        }
-
-        return response()->json([
-            'errors' => ['email' => ['Gagal untuk mereset passwordmu!']]
-        ], 500);
     }
 
     // Bagian untuk ambil User yang masih fresh

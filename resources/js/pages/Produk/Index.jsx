@@ -233,10 +233,9 @@ export default function ProdukHome() {
                             <table className="w-full text-sm text-left">
                                 <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
                                     <tr>
-                                        <th className="px-6 py-3 font-semibold">#</th>
+                                        <th className="px-6 py-3 font-semibold">No</th>
                                         <th className="px-6 py-3 font-semibold">Produk</th>
                                         <th className="px-6 py-3 font-semibold hidden md:table-cell">Kategori</th>
-                                        <th className="px-6 py-3 font-semibold hidden lg:table-cell">Harga</th>
                                         <th className="px-6 py-3 font-semibold text-center">Stok</th>
                                         <th className="px-6 py-3 font-semibold text-center">Aksi</th>
                                         <th className="px-6 py-3 font-semibold text-center">QR Code</th>
@@ -262,9 +261,6 @@ export default function ProdukHome() {
                                                     <span className="px-2 py-1 bg-gray-100 dark:bg-gray-700 rounded text-xs">
                                                         {item.kategori?.nama_kategori || '-'}
                                                     </span>
-                                                </td>
-                                                <td className="px-6 py-4 hidden lg:table-cell font-medium text-gray-900 dark:text-white">
-                                                    {formatRupiah(item.harga)}
                                                 </td>
                                                 <td className="px-6 py-4">
                                                     <div className="flex flex-col items-center gap-1">
