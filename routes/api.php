@@ -14,9 +14,11 @@ use App\Exports\BatchExports;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
 
+// Route Public
+Route::post('/login', [AuthController::class, 'login']);
+
 // Route Gabungan
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
     Route::post('/logout', [AuthController::class, 'logout']);
     Route::get('/user', [AuthController::class, 'user']);
     Route::apiResource('users', UserController::class);

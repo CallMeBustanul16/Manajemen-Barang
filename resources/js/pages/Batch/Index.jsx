@@ -1,18 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-    Plus, 
-    Search, 
-    Edit, 
-    Trash2, 
-    Download, 
-    Package,
-    ChevronLeft,
-    ChevronRight,
-    RefreshCw,
-    QrCode,
-    History,
-    Eye,
+    Plus, Search, Edit, Trash2, Download, Package,
+    ChevronLeft, ChevronRight, RefreshCw, History, Eye
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -26,11 +16,7 @@ export default function BatchHome() {
     const [filterProduk, setFilterProduk] = useState('');
     const perPage = 10;
 
-    useEffect(() => {
-        fetchBatches();
-    }, [currentPage]);
-
-    const fetchBatches = async () => {
+    const fetchBatches = useCallback(async () => {
         setLoading(true);
         try {
             const token = localStorage.getItem('token');
@@ -45,9 +31,10 @@ export default function BatchHome() {
 
             if (response.ok) {
                 const data = result.data || result;
-                setBatches(Array.isArray(data) ? data : []);
-                setTotalItems(data.length || 0);
-                setTotalPages(Math.ceil((data.length || 0) / perPage));
+                const items = Array.isArray(data.data) ? data.data : (Array.isArray(data) ? data : []);
+                setBatches(items);
+                setTotalItems(data.total || items.length);
+                setTotalPages(data.last_page || Math.ceil(items.length / perPage) || 1);
             } else {
                 Swal.fire('Error', result.message || 'Gagal memuat data batch', 'error');
             }
@@ -57,7 +44,11 @@ export default function BatchHome() {
         } finally {
             setLoading(false);
         }
-    };
+    }, [currentPage]);
+
+    useEffect(() => {
+        fetchBatches();
+    }, [fetchBatches]);
 
     const handleDelete = (id, nama) => {
         Swal.fire({
@@ -100,9 +91,7 @@ export default function BatchHome() {
         try {
             const token = localStorage.getItem('token');
             const response = await fetch(`/api/batch/${id}/download-qr`, {
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                },
+                headers: { 'Authorization': `Bearer ${token}` },
             });
         
             if (response.ok) {
@@ -120,21 +109,9 @@ export default function BatchHome() {
                 Swal.fire('Error', data.message || 'Gagal download QR', 'error');
             }
         } catch (error) {
-            console.error('Error downloading QR:', error);
             Swal.fire('Error', 'Gagal download QR', 'error');
         }
     };
-
-    const filteredData = batches.filter(item =>
-        item.produk?.nama_produk?.toLowerCase().includes(search.toLowerCase()) ||
-        item.qr_code?.toLowerCase().includes(search.toLowerCase()) ||
-        item.lokasi_rak?.toLowerCase().includes(search.toLowerCase())
-    );
-
-    const paginatedData = filteredData.slice(
-        (currentPage - 1) * perPage,
-        currentPage * perPage
-    );
 
     const handleExport = async () => {
         try {
@@ -156,7 +133,6 @@ export default function BatchHome() {
                 return;
             }
 
-            // Download file
             const blob = await response.blob();
             const downloadUrl = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -167,221 +143,142 @@ export default function BatchHome() {
             a.remove();
             window.URL.revokeObjectURL(downloadUrl);
 
-            Swal.fire({
-                title: 'Berhasil!',
-                text: 'File Excel berhasil diunduh.',
-                icon: 'success',
-                timer: 1500,
-                showConfirmButton: false,
-            });
+            Swal.fire({ title: 'Berhasil!', text: 'File Excel diunduh.', icon: 'success', timer: 1500, showConfirmButton: false });
         } catch (error) {
-            console.error('Export error:', error);
             Swal.fire('Error', 'Gagal export data', 'error');
         }
     };
 
+    // Optimasi Filter List menggunakan useMemo
+    const filteredData = useMemo(() => {
+        return batches.filter(item => {
+            const matchSearch = item.produk?.nama_produk?.toLowerCase().includes(search.toLowerCase()) ||
+                item.qr_code?.toLowerCase().includes(search.toLowerCase()) ||
+                item.lokasi_rak?.toLowerCase().includes(search.toLowerCase());
+            const matchProduk = filterProduk ? item.produk?.id === parseInt(filterProduk) : true;
+            return matchSearch && matchProduk;
+        });
+    }, [batches, search, filterProduk]);
+
+    // Cache daftar produk untuk dropdown filter agar tidak di-loop ulang setiap render
+    const produkOptions = useMemo(() => {
+        const uniqueProduks = [];
+        const map = new Map();
+        for (const item of batches) {
+            if (item.produk && !map.has(item.produk.id)) {
+                map.set(item.produk.id, true);
+                uniqueProduks.push(item.produk);
+            }
+        }
+        return uniqueProduks;
+    }, [batches]);
+
     if (loading && currentPage === 1) {
         return (
-            <div className="flex items-center justify-center min-h-[60vh]">
-                <div className="text-center">
-                    <div className="w-12 h-12 border-4 border-red-600 border-t-transparent rounded-full animate-spin mx-auto"></div>
-                    <p className="mt-4 text-gray-600 dark:text-gray-400">Memuat data batch...</p>
-                </div>
+            <div className="flex items-center justify-center min-h-[50vh] text-xs text-gray-500">
+                Memuat data batch...
             </div>
         );
     }
 
     return (
-        <div className="space-y-4 sm:space-y-6 px-2 sm:px-0">
+        <div className="space-y-4 p-2 sm:p-4">
             {/* Header */}
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
                 <div>
-                    <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">
-                        Manajemen Batch
-                    </h1>
-                    <p className="text-sm text-gray-600 dark:text-gray-400 hidden sm:block">
-                        Kelola batch/kardus produk dengan QR Code
-                    </p>
+                    <h1 className="text-lg sm:text-xl font-bold text-gray-900 dark:text-white">Manajemen Batch</h1>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Kelola batch/kardus produk dengan QR Code</p>
                 </div>
-                <div className="flex flex-wrap items-center gap-2">
-
-                    {/* Refresh */}
-                    <button
-                        onClick={fetchBatches}
-                        className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors"
-                        title="Refresh"
-                    >
-                        <RefreshCw className="w-4 h-4 sm:w-5 sm:h-5" />
+                <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
+                    <button onClick={fetchBatches} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Refresh">
+                        <RefreshCw className="w-4 h-4" />
                     </button>
-
-                    <button
-                        onClick={handleExport}
-                        className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-green-600 hover:bg-green-700 text-white text-sm sm:text-base rounded-lg transition-colors"
-                    >
-                        <Download className="w-4 h-4" />
-                        <span className="hidden xs:inline">Export Excel</span>
-                        <span className="xs:hidden">Export</span>
+                    <button onClick={handleExport} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                        <Download className="w-3.5 h-3.5" /> <span>Export</span>
                     </button>
-
-                    {/* Tambah Batch */}
-                    <Link
-                        to="/batch/create"
-                        className="inline-flex items-center gap-1 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-red-600 hover:bg-red-700 text-white text-sm sm:text-base rounded-lg transition-colors"
-                    >
-                        <Plus className="w-4 h-4" />
-                        <span className="hidden xs:inline">Tambah Batch</span>
-                        <span className="xs:hidden">Batch</span>
+                    <Link to="/batch/create" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                        <Plus className="w-3.5 h-3.5" /> <span>Tambah Batch</span>
                     </Link>
                 </div>
             </div>
 
-            <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">
+            {/* Controls Search & Filter */}
+            <div className="flex flex-col sm:flex-row gap-2 sm:gap-3">
                 <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 sm:w-5 sm:h-5 text-gray-400" />
+                    <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                     <input
                         type="text"
                         placeholder="Cari batch (produk, QR Code, lokasi)..."
                         value={search}
                         onChange={(e) => setSearch(e.target.value)}
-                        className="w-full pl-9 sm:pl-10 pr-3 sm:pr-4 py-1.5 sm:py-2 text-sm sm:text-base border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
+                        className="w-full pl-9 pr-3 py-2 text-xs border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-red-500 outline-none"
                     />
                 </div>
-            
+
                 <div className="flex gap-2">
                     <select
                         value={filterProduk}
                         onChange={(e) => setFilterProduk(e.target.value)}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-2 focus:ring-red-500 focus:border-red-500 outline-none transition-colors"
+                        className="px-3 py-2 text-xs border border-gray-300 dark:border-gray-700 rounded-lg bg-white dark:bg-gray-800 text-gray-900 dark:text-white focus:ring-1 focus:ring-red-500 outline-none"
                     >
                         <option value="">Semua Produk</option>
-                        {/* Ambil daftar produk unik dari data batch */}
-                        {[...new Set(batches.map(b => b.produk?.id))].map(id => {
-                            const produk = batches.find(b => b.produk?.id === id)?.produk;
-                            return produk ? (
-                                <option key={id} value={id}>{produk.nama_produk}</option>
-                            ) : null;
-                        })}
+                        {produkOptions.map(p => (
+                            <option key={p.id} value={p.id}>{p.nama_produk}</option>
+                        ))}
                     </select>
                     <button
-                        onClick={() => {
-                            setFilterProduk('');
-                            setSearch('');
-                        }}
-                        className="px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => { setFilterProduk(''); setSearch(''); }}
+                        className="px-3 py-2 text-xs border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                     >
                         Reset
                     </button>
                 </div>
             </div>
-            
-            {/* Table */}
-            <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden">
-                {paginatedData.length === 0 ? (
-                    <div className="text-center py-8 sm:py-12">
-                        <Package className="w-12 h-12 sm:w-16 sm:h-16 text-gray-300 dark:text-gray-600 mx-auto mb-3 sm:mb-4" />
-                        <p className="text-gray-500 dark:text-gray-400 text-sm sm:text-base">
-                            {search ? 'Tidak ada batch yang sesuai' : 'Belum ada data batch'}
-                        </p>
-                        <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 mt-1">
-                            {search ? 'Coba ubah filter pencarian' : 'Mulai dengan menambah batch baru'}
-                        </p>
+
+            {/* Data Output */}
+            <div className="bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 overflow-hidden">
+                {filteredData.length === 0 ? (
+                    <div className="text-center py-8 text-xs text-gray-500">
+                        <Package className="w-10 h-10 text-gray-300 dark:text-gray-600 mx-auto mb-2" />
+                        <p>{search ? 'Tidak ada batch yang sesuai' : 'Belum ada data batch'}</p>
                     </div>
                 ) : (
                     <>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-sm text-left">
+                        {/* Tampilan Desktop Table */}
+                        <div className="hidden md:block overflow-x-auto">
+                            <table className="w-full text-xs text-left">
                                 <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
                                     <tr>
-                                        <th className="px-4 py-3 font-semibold">#</th>
-                                        <th className="px-4 py-3 font-semibold">Produk</th>
-                                        <th className="px-4 py-3 font-semibold text-center">Stok</th>
-                                        <th className="px-4 py-3 font-semibold hidden md:table-cell">Lokasi</th>
-                                        <th className="px-4 py-3 font-semibold hidden lg:table-cell">QR Code</th>
-                                        <th className="px-4 py-3 font-semibold text-center">Aksi</th>
+                                        <th className="px-4 py-3">#</th>
+                                        <th className="px-4 py-3">Produk</th>
+                                        <th className="px-4 py-3 text-center">Stok</th>
+                                        <th className="px-4 py-3">Lokasi</th>
+                                        <th className="px-4 py-3">QR Code</th>
+                                        <th className="px-4 py-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {paginatedData.map((item, index) => (
-                                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                            <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                                                {(currentPage - 1) * perPage + index + 1}
-                                            </td>
+                                    {filteredData.map((item, index) => (
+                                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                            <td className="px-4 py-3 text-gray-500">{(currentPage - 1) * perPage + index + 1}</td>
                                             <td className="px-4 py-3">
-                                                <div className="font-medium text-gray-900 dark:text-white">
-                                                    {item.produk?.nama_produk || '-'}
-                                                </div>
-                                                <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                    Masuk: {item.tanggal_masuk}
-                                                </div>
+                                                <div className="font-semibold text-gray-900 dark:text-white">{item.produk?.nama_produk || '-'}</div>
+                                                <div className="text-[11px] text-gray-400">Masuk: {item.tanggal_masuk}</div>
                                             </td>
                                             <td className="px-4 py-3 text-center">
-                                                <div className="flex flex-col items-center">
-                                                    <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                                                        item.stok_saat_ini > 0 
-                                                            ? 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' 
-                                                            : 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400'
-                                                    }`}>
-                                                        {item.stok_saat_ini}
-                                                    </span>
-                                                    <span className="text-xs text-gray-400 dark:text-gray-500">
-                                                        / {item.jumlah_awal}
-                                                    </span>
-                                                </div>
-                                            </td>
-                                            <td className="px-4 py-3 hidden md:table-cell text-gray-600 dark:text-gray-400">
-                                                {item.lokasi_rak || '-'}
-                                            </td>
-                                            <td className="px-4 py-3 hidden lg:table-cell">
-                                                <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                                    {item.qr_code?.substring(0, 20)}...
+                                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${item.stok_saat_ini > 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'}`}>
+                                                    {item.stok_saat_ini} / {item.jumlah_awal}
                                                 </span>
                                             </td>
+                                            <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{item.lokasi_rak || '-'}</td>
+                                            <td className="px-4 py-3 font-mono text-[11px] text-gray-400">{item.qr_code?.substring(0, 16)}...</td>
                                             <td className="px-4 py-3">
-                                                <div className="flex items-center justify-center gap-1 sm:gap-2">
-                                                    {/* Tombol Detail */}
-                                                    <Link
-                                                        to={`/batch/detail/${item.id}`}
-                                                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                        title="Detail"
-                                                    >
-                                                        <Eye className="w-4 h-4" />
-                                                    </Link>
-
-                                                    {/* Tombol History */}
-                                                    <Link
-                                                        to={`/batch/history/${item.id}`}
-                                                        className="p-1.5 sm:p-2 text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20 rounded-lg transition-colors"
-                                                        title="Riwayat"
-                                                    >
-                                                        <History className="w-4 h-4" />
-                                                    </Link>
-
-                                                    {/* Download QR */}
-                                                    <button
-                                                        onClick={() => handleDownloadQr(item.id)}
-                                                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                        title="Download QR"
-                                                    >
-                                                        <Download className="w-4 h-4" />
-                                                    </button>
-
-                                                    {/* Tombol Edit */}
-                                                    <Link
-                                                        to={`/batch/edit/${item.id}`}
-                                                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                        title="Edit"
-                                                    >
-                                                        <Edit className="w-4 h-4" />
-                                                    </Link>
-
-                                                    {/* Tombol Hapus */}
-                                                    <button
-                                                        onClick={() => handleDelete(item.id, item.produk?.nama_produk)}
-                                                        className="p-1.5 sm:p-2 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
-                                                        title="Hapus"
-                                                    >
-                                                        <Trash2 className="w-4 h-4" />
-                                                    </button>
+                                                <div className="flex items-center justify-center gap-1">
+                                                    <Link to={`/batch/detail/${item.id}`} className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded" title="Detail"><Eye className="w-4 h-4" /></Link>
+                                                    <Link to={`/batch/history/${item.id}`} className="p-1.5 text-emerald-600 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 rounded" title="Riwayat"><History className="w-4 h-4" /></Link>
+                                                    <button onClick={() => handleDownloadQr(item.id)} className="p-1.5 text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/30 rounded" title="Download QR"><Download className="w-4 h-4" /></button>
+                                                    <Link to={`/batch/edit/${item.id}`} className="p-1.5 text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/30 rounded" title="Edit"><Edit className="w-4 h-4" /></Link>
+                                                    <button onClick={() => handleDelete(item.id, item.produk?.nama_produk)} className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded" title="Hapus"><Trash2 className="w-4 h-4" /></button>
                                                 </div>
                                             </td>
                                         </tr>
@@ -390,29 +287,43 @@ export default function BatchHome() {
                             </table>
                         </div>
 
+                        {/* Tampilan Mobile Card Stack (Kompatibel Layar HP) */}
+                        <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                            {filteredData.map((item) => (
+                                <div key={item.id} className="p-3 space-y-2 text-xs">
+                                    <div className="flex justify-between items-start">
+                                        <div>
+                                            <p className="font-semibold text-gray-900 dark:text-white">{item.produk?.nama_produk || '-'}</p>
+                                            <p className="text-[11px] text-gray-400">Rak: {item.lokasi_rak || '-'}</p>
+                                        </div>
+                                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${item.stok_saat_ini > 0 ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'}`}>
+                                            Stok: {item.stok_saat_ini}/{item.jumlah_awal}
+                                        </span>
+                                    </div>
+                                    <div className="flex items-center justify-between pt-1 border-t border-gray-100 dark:border-gray-700/50">
+                                        <span className="text-[10px] text-gray-400">{item.tanggal_masuk}</span>
+                                        <div className="flex items-center gap-1">
+                                            <Link to={`/batch/detail/${item.id}`} className="p-1 text-blue-600"><Eye className="w-4 h-4" /></Link>
+                                            <Link to={`/batch/history/${item.id}`} className="p-1 text-emerald-600"><History className="w-4 h-4" /></Link>
+                                            <button onClick={() => handleDownloadQr(item.id)} className="p-1 text-amber-600"><Download className="w-4 h-4" /></button>
+                                            <Link to={`/batch/edit/${item.id}`} className="p-1 text-indigo-600"><Edit className="w-4 h-4" /></Link>
+                                            <button onClick={() => handleDelete(item.id, item.produk?.nama_produk)} className="p-1 text-red-600"><Trash2 className="w-4 h-4" /></button>
+                                        </div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+
                         {/* Pagination */}
                         {totalPages > 1 && (
-                            <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-t border-gray-200 dark:border-gray-700 gap-2 sm:gap-3">
-                                <p className="text-xs sm:text-sm text-gray-500 dark:text-gray-400 order-2 sm:order-1">
-                                    {filteredData.length} dari {totalItems} batch
-                                </p>
-                                <div className="flex items-center gap-1 sm:gap-2 order-1 sm:order-2">
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                                        disabled={currentPage === 1}
-                                        className="p-1.5 sm:p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <ChevronLeft className="w-4 h-4 sm:w-5 sm:h-5" />
+                            <div className="flex items-center justify-between px-4 py-3 border-t border-gray-200 dark:border-gray-700 text-xs">
+                                <span className="text-gray-500">Hal {currentPage} dari {totalPages} ({totalItems} total)</span>
+                                <div className="flex items-center gap-1">
+                                    <button onClick={() => setCurrentPage(p => Math.max(1, p - 1))} disabled={currentPage === 1} className="p-1.5 border rounded disabled:opacity-40">
+                                        <ChevronLeft className="w-4 h-4" />
                                     </button>
-                                    <span className="text-xs sm:text-sm text-gray-600 dark:text-gray-300">
-                                        {currentPage} / {totalPages}
-                                    </span>
-                                    <button
-                                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                                        disabled={currentPage === totalPages}
-                                        className="p-1.5 sm:p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-                                    >
-                                        <ChevronRight className="w-4 h-4 sm:w-5 sm:h-5" />
+                                    <button onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))} disabled={currentPage === totalPages} className="p-1.5 border rounded disabled:opacity-40">
+                                        <ChevronRight className="w-4 h-4" />
                                     </button>
                                 </div>
                             </div>

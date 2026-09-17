@@ -34,25 +34,7 @@ class AuthController extends Controller
 
         $user = User::where('email', $request->email)->first();
 
-        if (!$user) {
-            return response()->json([
-                'success' => false,
-                'message' => 'User dengan email seperti ini tidak ditemukan'
-            ], 404);
-        }
-
-        if (!Hash::check($request->password, $user->password)) {
-            return response()->json([
-                'success' =>false,
-                'message' => 'Password kamu salah'
-            ], 401);
-        }
-
-        Auth::guard('web')->login($user);
-
-        // $user = Auth::user();
-
-        $token = $user->createToken('auth_token')->plainTextToken; //Bisa di upgrade ke tingkat lebih tinggi
+        $token = $user->createToken('auth_token')->plainTextToken;
 
         return response()->json([
             'message' => 'Kamu telah berhasil login ke dalam akun!',
