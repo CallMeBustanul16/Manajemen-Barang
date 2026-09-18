@@ -281,12 +281,6 @@ export default function BatchDetail() {
                         <p className="text-sm text-gray-500 dark:text-gray-400">Tanggal Masuk</p>
                         <p className="text-gray-700 dark:text-gray-300">{formatDateShort(batch.tanggal_masuk)}</p>
                     </div>
-                    <div>
-                        <p className="text-sm text-gray-500 dark:text-gray-400">Tanggal Kadaluarsa</p>
-                        <p className="text-gray-700 dark:text-gray-300">
-                            {batch.tanggal_kadaluarsa ? formatDateShort(batch.tanggal_kadaluarsa) : '-'}
-                        </p>
-                    </div>
                 </div>
             </div>
 

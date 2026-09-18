@@ -15,7 +15,6 @@ return new class extends Migration
             $table->integer('jumlah_awal')->default(0);
             $table->integer('stok_saat_ini')->default(0);
             $table->date('tanggal_masuk');
-            $table->date('tanggal_kadaluarsa')->nullable();
             $table->string('lokasi_rak')->nullable();
             $table->timestamps();
 

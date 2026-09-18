@@ -46,7 +46,6 @@ class BatchController extends Controller
             'produk_id' => 'required|exists:produk,id',
             'jumlah_awal' => 'required|integer|min:1',
             'tanggal_masuk' => 'required|date',
-            'tanggal_kadaluarsa' => 'nullable|date|after_or_equal:tanggal_masuk',
             'lokasi_rak' => 'nullable|string|max:100',
         ]);
 
@@ -72,7 +71,6 @@ class BatchController extends Controller
             'jumlah_awal' => $request->jumlah_awal,
             'stok_saat_ini' => $request->jumlah_awal,
             'tanggal_masuk' => $request->tanggal_masuk,
-            'tanggal_kadaluarsa' => $request->tanggal_kadaluarsa,
             'lokasi_rak' => $request->lokasi_rak,
             'qr_code' => Str::uuid(),
         ]);
@@ -135,7 +133,6 @@ class BatchController extends Controller
 
         $validator = Validator::make($request->all(), [
             'lokasi_rak' => 'nullable|string|max:100',
-            'tanggal_kadaluarsa' => 'nullable|date',
         ]);
 
         if ($validator->fails()) {
@@ -145,7 +142,7 @@ class BatchController extends Controller
             ], 422);
         }
 
-        $batch->update($request->only(['lokasi_rak', 'tanggal_kadaluarsa']));
+        $batch->update($request->only(['lokasi_rak']));
 
         return response()->json([
             'success' => true,

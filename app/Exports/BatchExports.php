@@ -55,7 +55,6 @@ class BatchExports implements FromCollection, WithHeadings, WithMapping, WithSty
             $row->jumlah_awal,
             $row->stok_saat_ini,
             $row->tanggal_masuk->format('d/m/Y'),
-            $row->tanggal_kadaluarsa ? $row->tanggal_kadaluarsa->format('d/m/Y') : '-',
             $row->lokasi_rak ?? '-',
             $row->created_at->format('d/m/Y H:i'),
         ];

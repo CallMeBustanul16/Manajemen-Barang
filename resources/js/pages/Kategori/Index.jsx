@@ -125,7 +125,7 @@ export default function KategoriHome() {
                             <table className="w-full text-xs text-left">
                                 <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
                                     <tr>
-                                        <th className="px-4 py-3">#</th>
+                                        <th className="px-4 py-3">No</th>
                                         <th className="px-4 py-3">Nama Kategori</th>
                                         <th className="px-4 py-3">Slug</th>
                                         <th className="px-4 py-3">Deskripsi</th>

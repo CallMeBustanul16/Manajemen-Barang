@@ -99,14 +99,17 @@ export default function Sidebar({ isOpen, onClose, darkMode }) {
                     <div className={`p-2 border-t space-y-0.5 ${
                         darkMode ? 'border-gray-800' : 'border-gray-200'
                     }`}>
-                        <NavLink
+
+                        {/* Fitur nanti */}
+                        {/* <NavLink
                             to="/settings"
                             className={`flex items-center gap-3 px-3 py-2 rounded text-xs font-medium transition-colors ${
                                 darkMode ? 'text-gray-400 hover:bg-gray-800' : 'text-gray-600 hover:bg-gray-100'
                             }`}
                         >
                             <Settings className="w-4 h-4" /> Pengaturan
-                        </NavLink>
+                        </NavLink> */}
+                        
                         <button
                             onClick={handleLogout}
                             className="flex items-center gap-3 w-full px-3 py-2 rounded text-xs font-medium text-rose-600 dark:text-rose-400 hover:bg-rose-50 dark:hover:bg-rose-950/30 transition-colors"

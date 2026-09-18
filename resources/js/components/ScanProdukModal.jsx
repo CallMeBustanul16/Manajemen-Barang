@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, AlertTriangle, CheckCircle, Calendar, Box } from 'lucide-react';
+import { X, Package, AlertTriangle, Calendar, Box } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
@@ -15,30 +15,30 @@ export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
     const { produk, batches, total_stok } = data;
     const isLowStock = total_stok <= (produk.stok_minimal || 5);
 
-    // Filter batch yang masih punya stok
-    const availableBatches = batches.filter(b => b.stok_saat_ini > 0);
+    const allBatches = batches || [];
+
+    const availableBatches = allBatches.filter(b => b.stok_saat_ini > 0);
 
     const handleSubmit = async () => {
+        // Validasi jumlah
         if (jumlah < 1) {
             Swal.fire('Error', 'Jumlah minimal 1', 'error');
             return;
         }
 
+        if (!selectedBatchId) {
+            Swal.fire('Error', 'Silakan pilih batch terlebih dahulu', 'error');
+            return;
+        }
+
+        const selectedBatch = allBatches.find(b => b.id === parseInt(selectedBatchId));
+
+        // Validasi stok untuk keluar
         if (type === 'keluar') {
-            // Cek total stok cukup
             if (jumlah > total_stok) {
                 Swal.fire('Error', `Stok tidak mencukupi! Total stok: ${total_stok}`, 'error');
                 return;
             }
-
-            // Jika keluar, batch wajib dipilih
-            if (!selectedBatchId) {
-                Swal.fire('Error', 'Silakan pilih batch tujuan', 'error');
-                return;
-            }
-
-            // Cek stok batch cukup
-            const selectedBatch = batches.find(b => b.id === parseInt(selectedBatchId));
             if (selectedBatch && jumlah > selectedBatch.stok_saat_ini) {
                 Swal.fire('Error', `Stok batch tidak mencukupi! Stok batch: ${selectedBatch.stok_saat_ini}`, 'error');
                 return;
@@ -59,15 +59,11 @@ export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
 
             const payload = {
                 produk_id: produk.id,
+                batch_id: parseInt(selectedBatchId),
                 jumlah: jumlah,
-                catatan: catatan || `Scan Produk: ${produk.qr_code}`,
+                catatan: catatan || `Scan Produk: ${produk.qr_code || produk.sku}`,
                 tanggal: tanggal,
             };
-
-            // Jika keluar dan ada batch yang dipilih, kirim batch_id
-            if (type === 'keluar' && selectedBatchId) {
-                payload.batch_id = parseInt(selectedBatchId);
-            }
 
             console.log('📤 Sending payload:', payload);
 
@@ -104,13 +100,14 @@ export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
         }
     };
 
-    // Handler untuk pilih batch otomatis saat keluar
+    // Reset batch saat ganti tipe
     const handleTypeChange = (newType) => {
         setType(newType);
-        if (newType === 'masuk') {
-            setSelectedBatchId(''); // Reset pilihan batch
-        }
+        setSelectedBatchId(''); // Reset pilihan batch
     };
+
+    // Daftar batch yang ditampilkan (tergantung tipe)
+    const displayBatches = type === 'keluar' ? availableBatches : allBatches;
 
     return (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
@@ -147,21 +144,19 @@ export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
                                 <span className={`text-lg font-bold ${isLowStock ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
                                     {total_stok}
                                 </span>
-                                {isLowStock && (
-                                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                                )}
+                                {isLowStock && <AlertTriangle className="w-4 h-4 text-red-500" />}
                             </div>
                         </div>
                     </div>
 
-                    {/* Daftar Batch (untuk keluar) */}
-                    {batches.length > 0 && (
+                    {/* Daftar Batch */}
+                    {allBatches.length > 0 && (
                         <div className="bg-blue-50 dark:bg-blue-900/20 rounded-lg p-3">
                             <p className="text-xs font-medium text-gray-600 dark:text-gray-400 mb-2">
                                 📦 Batch Tersedia:
                             </p>
                             <div className="flex flex-wrap gap-2">
-                                {batches.map((batch) => (
+                                {allBatches.map((batch) => (
                                     <span
                                         key={batch.id}
                                         className={`px-2 py-1 text-xs rounded-full ${
@@ -201,31 +196,37 @@ export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
                         </button>
                     </div>
 
-                    {/* Pilih Batch (hanya untuk keluar) */}
-                    {type === 'keluar' && batches.length > 0 && (
-                        <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Pilih Batch <span className="text-red-500">*</span>
-                            </label>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Pilih Batch <span className="text-red-500">*</span>
+                        </label>
+                        <div className="relative">
+                            <Box className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />
                             <select
                                 value={selectedBatchId}
                                 onChange={(e) => setSelectedBatchId(e.target.value)}
-                                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
                             >
                                 <option value="">Pilih batch...</option>
-                                {availableBatches.map((batch) => (
+                                {displayBatches.map((batch) => (
                                     <option key={batch.id} value={batch.id}>
-                                        Batch #{batch.id} - Stok: {batch.stok_saat_ini} {batch.lokasi_rak ? `(${batch.lokasi_rak})` : ''}
+                                        Batch #{batch.id} - Stok: {batch.stok_saat_ini}
+                                        {batch.lokasi_rak ? ` (${batch.lokasi_rak})` : ''}
                                     </option>
                                 ))}
                             </select>
-                            {selectedBatchId && (
-                                <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                    Stok batch: {batches.find(b => b.id === parseInt(selectedBatchId))?.stok_saat_ini || 0}
-                                </p>
-                            )}
                         </div>
-                    )}
+                        {type === 'keluar' && displayBatches.length === 0 && (
+                            <p className="text-xs text-red-500 mt-1">
+                                Tidak ada batch dengan stok tersedia
+                            </p>
+                        )}
+                        {selectedBatchId && (
+                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                Stok batch: {allBatches.find(b => b.id === parseInt(selectedBatchId))?.stok_saat_ini || 0}
+                            </p>
+                        )}
+                    </div>
 
                     {/* Tanggal */}
                     <div>
@@ -257,7 +258,9 @@ export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
                         />
                         {type === 'keluar' && (
                             <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Maksimal: {total_stok}
+                                Maksimal: {selectedBatchId 
+                                    ? allBatches.find(b => b.id === parseInt(selectedBatchId))?.stok_saat_ini || 0
+                                    : total_stok}
                             </p>
                         )}
                     </div>
@@ -287,7 +290,7 @@ export default function ScanProdukModal({ isOpen, onClose, data, onSuccess }) {
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={loading}
+                        disabled={loading || !selectedBatchId}
                         className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors ${
                             type === 'masuk'
                                 ? 'bg-green-600 hover:bg-green-700'

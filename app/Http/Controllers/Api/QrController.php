@@ -99,6 +99,7 @@ class QrController extends Controller
             ], 404);
         }
         
+        $slug = $this->qrService->slugifyFilename($produk->nama_produk, 'produk-' . $produk->id);
         $filename = 'produk-' . $produk->id . '.png';
         $path = storage_path('app/public/qrcodes/' . $filename);
         
@@ -108,6 +109,8 @@ class QrController extends Controller
                 'message' => 'File QR Code tidak ditemukan. Silakan generate ulang'
             ], 404);
         }
+
+        $downloadName = $produk->nama_produk . '.png';
         
         return response()->download($path, $filename);
     }
@@ -162,6 +165,8 @@ class QrController extends Controller
             ], 404);
         }
         
+        $namaProduk = $batch->produk->nama_produk ?? 'produk';
+        $slug = $this->qrService->slugifyFilename($namaProduk, 'batch-' . $batch->id);
         $filename = 'batch-' . $batch->id . '.png';
         $path = storage_path('app/public/qrcodes/' . $filename);
         
@@ -171,6 +176,8 @@ class QrController extends Controller
                 'message' => 'File QR Code tidak ditemukan'
             ], 404);
         }
+
+        $downloadName = $namaProduk . ' - Batch ' . $batch->id . '.png';
         
         return response()->download($path, $filename);
     }
