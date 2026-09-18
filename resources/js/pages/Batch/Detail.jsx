@@ -125,9 +125,44 @@ export default function BatchDetail() {
         });
     };
 
-    const handleDownloadQr = () => {
-        const token = localStorage.getItem('token');
-        window.open(`/api/batch/${id}/download-qr?token=${token}`, '_blank');
+    const handleDownloadQr = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/batch/${id}/download-qr`, {
+                method: 'GET',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const data = await response.json();
+                Swal.fire('Error', data.message || 'Gagal download QR', 'error');
+                return;
+            }
+
+            const blob = await response.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `batch-${id}.png`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'QR Code berhasil diunduh.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        } catch (error) {
+            console.error('Download error:', error);
+            Swal.fire('Error', 'Gagal download QR', 'error');
+        }
     };
 
     const formatDate = (date) => {
@@ -306,7 +341,7 @@ export default function BatchDetail() {
                         <table className="w-full text-sm text-left">
                             <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
                                 <tr>
-                                    <th className="px-6 py-3 font-semibold">#</th>
+                                    <th className="px-6 py-3 font-semibold">No</th>
                                     <th className="px-6 py-3 font-semibold">Tipe</th>
                                     <th className="px-6 py-3 font-semibold text-center">Jumlah</th>
                                     <th className="px-6 py-3 font-semibold">User</th>

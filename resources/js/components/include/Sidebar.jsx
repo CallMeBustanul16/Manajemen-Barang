@@ -64,7 +64,7 @@ export default function Sidebar({ isOpen, onClose, darkMode }) {
                     <div className={`flex items-center gap-2.5 px-4 h-14 border-b ${
                         darkMode ? 'border-gray-800' : 'border-gray-200'
                     }`}>
-                        <Package className="w-5 h-5 text-red-600 dark:text-red-400" />
+                        <Package className="w-5 h-5 text-black dark:text-white" />
                         <span className="text-sm font-bold tracking-wider uppercase">
                             Manajemen Barang
                         </span>

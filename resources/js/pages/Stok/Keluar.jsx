@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Package, User, Calendar, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Save, Package, User, Box, Calendar, AlertCircle } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { produkAPI } from '../../lib/api';
 
@@ -16,10 +16,21 @@ export default function StokBarangKeluar() {
     });
     const [errors, setErrors] = useState({});
     const [selectedProduct, setSelectedProduct] = useState(null);
+    const [batchList, setBatchList] = useState([]);
+    const [selectedBatch, setSelectedBatch] = useState('');
 
     useEffect(() => {
         fetchProduk();
     }, []);
+
+    useEffect(() => {
+            if (formData.produk_id) {
+                fetchBatchList(formData.produk_id);
+            } else {
+                setBatchList([]);
+                setSelectedBatch('');
+            }
+        }, [formData.produk_id]);
 
     const fetchProduk = async () => {
         try {
@@ -30,6 +41,36 @@ export default function StokBarangKeluar() {
             console.error('Error fetching produk:', error);
             Swal.fire('Error', 'Gagal memuat data produk', 'error');
         }
+    };
+
+    const fetchBatchList = async (produkId) => {
+        try {
+            const token = localStorage.getItem('token');
+            const response = await fetch(`/api/batch/produk/${produkId}/batches`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+            });
+            const result = await response.json();
+
+            if (response.ok) {
+                setBatchList(result.data.batches || []);
+            } else {
+                setBatchList([]);
+            }
+        } catch (error) {
+            console.error('Error fetching batches:', error);
+            setBatchList([]);
+        }
+    };
+
+    const payload = {
+        produk_id: parseInt(formData.produk_id),
+        batch_id: parseInt(selectedBatch),
+        jumlah: parseInt(formData.jumlah),
+        catatan: formData.catatan,
+        tanggal: formData.tanggal,
     };
 
     const handleChange = (e) => {
@@ -50,6 +91,12 @@ export default function StokBarangKeluar() {
         setLoading(true);
         setErrors({});
 
+        if (!selectedBatch) {
+            Swal.fire('Error', 'Silakan pilih batch terlebih dahulu', 'error');
+            setLoading(false);
+            return;
+        }
+
         try {
             // Validasi stok cukup
             if (selectedProduct && parseInt(formData.jumlah) > selectedProduct.stok) {
@@ -66,12 +113,7 @@ export default function StokBarangKeluar() {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({
-                    produk_id: parseInt(formData.produk_id),
-                    jumlah: parseInt(formData.jumlah),
-                    catatan: formData.catatan,
-                    tanggal: formData.tanggal,
-                }),
+                body: JSON.stringify(payload),
             });
 
             const data = await response.json();
@@ -119,6 +161,8 @@ export default function StokBarangKeluar() {
 
             <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
                 <form onSubmit={handleSubmit} className="space-y-6">
+                    
+                    {/* Pilih Produk */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Pilih Produk <span className="text-red-500">*</span>
@@ -174,6 +218,38 @@ export default function StokBarangKeluar() {
                         </div>
                     )}
 
+                    {/* Pilih Batch */}
+                    {formData.produk_id && (
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                                Pilih Batch <span className="text-red-500">*</span>
+                            </label>
+                            <div className="relative">
+                                <Box className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                                <select
+                                    value={selectedBatch}
+                                    onChange={(e) => setSelectedBatch(e.target.value)}
+                                    className="w-full pl-10 pr-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none appearance-none"
+                                    required
+                                >
+                                    <option value="">Pilih batch...</option>
+                                    {batchList.map((batch) => (
+                                        <option key={batch.id} value={batch.id}>
+                                            Batch #{batch.id} - Stok: {batch.stok_saat_ini}
+                                            {batch.lokasi_rak ? ` (${batch.lokasi_rak})` : ''}
+                                        </option>
+                                    ))}
+                                </select>
+                            </div>
+                            {batchList.length === 0 && (
+                                <p className="text-xs text-yellow-600 dark:text-yellow-400 mt-1">
+                                    ⚠️ Produk ini belum memiliki batch. Buat batch dulu di halaman Batch.
+                                </p>
+                            )}
+                        </div>
+                    )}
+
+                    {/* Jumlah */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Jumlah <span className="text-red-500">*</span>
