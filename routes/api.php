@@ -9,7 +9,7 @@ use App\Http\Controllers\Api\ProdukControllers;
 use App\Http\Controllers\Api\StokController;
 use App\Http\Controllers\Api\QrController;
 use App\Http\Controllers\Api\BatchController;
-use App\Exports\StokExport;
+use App\Exports\StokExports;
 use App\Exports\BatchExports;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Maatwebsite\Excel\Facades\Excel;
@@ -49,30 +49,25 @@ Route::middleware('auth:sanctum')->group(function () {
     Route::get('/produk/{id}/history', [ProdukControllers::class, 'history']);
 
     // Export
-    Route::get('/batch/export/excel', function (Request $request) {
-        $produkId = $request->query('produk_id');
-        $date = now()->format('Y-m-d');
-        $filename = "Laporan-Batch-{$date}.xlsx";
-        
-        return Excel::download(new BatchExports($produkId), $filename);
-    });
-
-    Route::get('/stok/export/excel', function (Request $request) {
-        $startDate = $request->start_date;
-        $endDate = $request->end_date;
-
-        return Excel::download(new StokExport($startDate, $endDate), 'Laporan-Stok.xlsx');
-    });
-
     Route::get('/stok/export/excel', function (Request $request) {
         $startDate = $request->query('start_date');
         $endDate = $request->query('end_date');
         $tipe = $request->query('tipe');
         $produkId = $request->query('produk_id');
-    
+
         return Excel::download(
-            new StokExport($startDate, $endDate, $tipe, $produkId),
-            'laporan-stok-' . now()->format('Y-m-d') . '.xlsx'
+            new StokExports($startDate, $endDate, $tipe, $produkId),
+            'stok-report-' . now()->format('Y-m-d') . '.xlsx'
+        );
+    });
+
+    // Export Batch (dengan filter produk)
+    Route::get('/batch/export/excel', function (Request $request) {
+        $produkId = $request->query('produk_id');
+
+        return Excel::download(
+            new BatchExports($produkId),
+            'batch-report-' . now()->format('Y-m-d') . '.xlsx'
         );
     });
 

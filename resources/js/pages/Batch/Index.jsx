@@ -116,35 +116,40 @@ export default function BatchHome() {
     const handleExport = async () => {
         try {
             const token = localStorage.getItem('token');
-            const url = filterProduk 
-                ? `/api/batch/export/excel?produk_id=${filterProduk}`
-                : '/api/batch/export/excel';
-
-            const response = await fetch(url, {
+            const params = new URLSearchParams({
+                ...(filterProduk && { produk_id: filterProduk }),
+            });
+        
+            const response = await fetch(`/api/batch/export/excel?${params}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
-                    'Accept': 'application/json',
                 },
             });
-
+        
             if (!response.ok) {
-                const data = await response.json();
-                Swal.fire('Error', data.message || 'Gagal export data', 'error');
+                Swal.fire('Error', 'Gagal export data', 'error');
                 return;
             }
-
+        
             const blob = await response.blob();
-            const downloadUrl = window.URL.createObjectURL(blob);
+            const url = window.URL.createObjectURL(blob);
             const a = document.createElement('a');
-            a.href = downloadUrl;
+            a.href = url;
             a.download = `batch-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
             document.body.appendChild(a);
             a.click();
             a.remove();
-            window.URL.revokeObjectURL(downloadUrl);
-
-            Swal.fire({ title: 'Berhasil!', text: 'File Excel diunduh.', icon: 'success', timer: 1500, showConfirmButton: false });
+            window.URL.revokeObjectURL(url);
+        
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'File Excel berhasil diunduh.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+            });
         } catch (error) {
+            console.error('Export error:', error);
             Swal.fire('Error', 'Gagal export data', 'error');
         }
     };
@@ -190,13 +195,24 @@ export default function BatchHome() {
                     <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">Kelola batch/kardus produk dengan QR Code</p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">
-                    <button onClick={fetchBatches} className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Refresh">
+                    <button 
+                        onClick={fetchBatches} 
+                        className="p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors" title="Refresh"
+                    >
                         <RefreshCw className="w-4 h-4" />
                     </button>
-                    <button onClick={handleExport} className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors">
-                        <Download className="w-3.5 h-3.5" /> <span>Export</span>
+                    <button
+                        onClick={handleExport}
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                        <Download className="w-3.5 h-3.5" />
+                        <span className="hidden xs:inline">Export Excel</span>
+                        <span className="xs:hidden">Export</span>
                     </button>
-                    <Link to="/batch/create" className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors">
+                    <Link 
+                        to="/batch/create" 
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
                         <Plus className="w-3.5 h-3.5" /> <span>Tambah Batch</span>
                     </Link>
                 </div>

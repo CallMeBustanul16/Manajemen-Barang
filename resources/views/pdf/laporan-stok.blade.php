@@ -149,7 +149,7 @@
     <!-- Header -->
     <div class="header">
         <h1>LAPORAN STOK</h1>
-        <p>Manajemen Inventory</p>
+        <p>Manajemen Barang</p>
     </div>
 
     <!-- Info Periode -->
@@ -204,7 +204,7 @@
     <table class="data">
         <thead>
             <tr>
-                <th style="width: 30px;">#</th>
+                <th style="width: 30px;">No</th>
                 <th>Produk</th>
                 <th style="width: 50px;">Tipe</th>
                 <th style="width: 50px; text-align: center;">Jumlah</th>
@@ -217,12 +217,6 @@
             @forelse($transactions as $index => $item)
             <tr>
                 <td>{{ $index + 1 }}</td>
-                <td>
-                    <strong>{{ $item->produk->nama_produk ?? '-' }}</strong><br>
-                    <span style="color: #6b7280; font-size: 9px;">
-                        SKU: {{ $item->produk->sku ?? '-' }}
-                    </span>
-                </td>
                 <td>
                     <span class="badge {{ $item->tipe === 'masuk' ? 'badge-masuk' : 'badge-keluar' }}">
                         {{ $item->tipe === 'masuk' ? 'MASUK' : 'KELUAR' }}
@@ -247,8 +241,8 @@
 
     <!-- Footer -->
     <div class="footer">
-        <p>Dokumen ini dicetak secara otomatis oleh Sistem Manajemen Inventory</p>
-        <p>&copy; {{ date('Y') }} Manajemen Inventory. All rights reserved.</p>
+        <p>Dokumen ini dicetak secara otomatis oleh Sistem Manajemen Barang</p>
+        <p>&copy; {{ date('Y') }} Manajemen Barang. All rights reserved.</p>
     </div>
 </body>
 </html>

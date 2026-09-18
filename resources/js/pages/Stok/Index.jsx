@@ -19,6 +19,9 @@ export default function StokIndex() {
     const [loading, setLoading] = useState(true);
     const [search, setSearch] = useState('');
     const [filterTipe, setFilterTipe] = useState('');
+    const [filterProduk, setFilterProduk] = useState('');
+    const [filterStartDate, setFilterStartDate] = useState('');
+    const [filterEndDate, setFilterEndDate] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
@@ -33,9 +36,18 @@ export default function StokIndex() {
             const params = new URLSearchParams({
                 page: currentPage,
                 per_page: perPage,
-                ...(filterTipe && { tipe: filterTipe }),
             });
-
+        
+            if (filterTipe) params.append('tipe', filterTipe);
+            if (filterProduk) params.append('produk_id', filterProduk);
+            if (filterStartDate) {
+            const start = new Date(filterStartDate);
+                params.append('start_date', start.toISOString().split('T')[0]);
+            }
+            if (filterEndDate) {
+                const end = new Date(filterEndDate);
+                params.append('end_date', end.toISOString().split('T')[0]);
+            }
             const response = await fetch(`/api/stok/history?${params}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -60,7 +72,7 @@ export default function StokIndex() {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, filterTipe]);
+    }, [currentPage, filterTipe, filterProduk, filterStartDate, filterEndDate]);
 
     useEffect(() => {
         fetchTransactions();
@@ -75,6 +87,62 @@ export default function StokIndex() {
             timer: 1000,
             showConfirmButton: false,
         });
+    };
+
+    const handleExport = async () => {
+        try {
+            const token = localStorage.getItem('token');
+            const params = new URLSearchParams();
+
+            if (filterTipe) params.append('tipe', filterTipe);
+            if (filterProduk) params.append('produk_id', filterProduk);
+            if (filterStartDate) params.append('start_date', filterStartDate);
+            if (filterEndDate) params.append('end_date', filterEndDate);
+
+            const queryString = params.toString();
+            const url = `/api/stok/export/excel${queryString ? '?' + queryString : ''}`;
+
+            console.log('📤 Export URL:', url);
+
+            const response = await fetch(url, {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json',
+                },
+            });
+
+            if (!response.ok) {
+                const contentType = response.headers.get('content-type');
+                if (contentType && contentType.includes('application/json')) {
+                    const errorData = await response.json();
+                    Swal.fire('Error', errorData.message || 'Gagal export data', 'error');
+                } else {
+                    Swal.fire('Error', 'Gagal export data', 'error');
+                }
+                return;
+            }
+
+            const blob = await response.blob();
+            const downloadUrl = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = downloadUrl;
+            a.download = `stok-report-${new Date().toISOString().slice(0, 10)}.xlsx`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(downloadUrl);
+
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'File Excel berhasil diunduh.',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false,
+            });
+        } catch (error) {
+            console.error('Export error:', error);
+            Swal.fire('Error', 'Gagal export data', 'error');
+        }
     };
 
     // Filter dinamis tanpa membuat ulang memori
@@ -117,11 +185,12 @@ export default function StokIndex() {
                     </button>
 
                     <button
-                        onClick={() => window.open('/api/stok/export/excel', '_blank')}
+                        onClick={handleExport}
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white text-xs font-semibold rounded-lg transition-colors"
                     >
                         <Download className="w-3.5 h-3.5" />
-                        <span>Export</span>
+                        <span className="hidden xs:inline">Export Excel</span>
+                        <span className="xs:hidden">Export</span>
                     </button>
 
                     <Link
@@ -165,9 +234,35 @@ export default function StokIndex() {
                         <option value="masuk">Masuk</option>
                         <option value="keluar">Keluar</option>
                     </select>
+
+                    {/* Input Tanggal Mulai */}
+                    <input
+                        type="date"
+                        value={filterStartDate}
+                        onChange={(e) => { setFilterStartDate(e.target.value); setCurrentPage(1); }}
+                        className="px-3 py-2 text-xs border rounded-lg"
+                        placeholder="Dari"
+                    />
+
+                    {/* Input Tanggal Selesai */}
+                    <input
+                        type="date"
+                        value={filterEndDate}
+                        onChange={(e) => { setFilterEndDate(e.target.value); setCurrentPage(1); }}
+                        className="px-3 py-2 text-xs border rounded-lg"
+                        placeholder="Sampai"
+                    />
+
                     <button
-                        onClick={() => { setFilterTipe(''); setSearch(''); setCurrentPage(1); }}
-                        className="px-3 py-2 text-xs border border-gray-300 dark:border-gray-700 rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                        onClick={() => {
+                            setFilterTipe('');
+                            setFilterProduk('');
+                            setFilterStartDate('');
+                            setFilterEndDate('');
+                            setSearch('');
+                            setCurrentPage(1);
+                        }}
+                        className="px-3 py-2 text-xs border rounded-lg hover:bg-gray-50"
                     >
                         Reset
                     </button>

@@ -3,15 +3,15 @@
 namespace App\Exports;
 
 use App\Models\Batch;
-use Illuminate\Support\Collection;
+use Illuminate\Support\Enumerable;
 use Maatwebsite\Excel\Concerns\FromCollection;
 use Maatwebsite\Excel\Concerns\WithHeadings;
 use Maatwebsite\Excel\Concerns\WithMapping;
 use Maatwebsite\Excel\Concerns\WithStyles;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use Maatwebsite\Excel\Concerns\WithColumnWidths;
 use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 
-class BatchExports implements FromCollection, WithHeadings, WithMapping, WithStyles
+class BatchExports implements FromCollection, WithHeadings, WithMapping, WithStyles, WithColumnWidths
 {
     protected $produkId;
 
@@ -20,7 +20,7 @@ class BatchExports implements FromCollection, WithHeadings, WithMapping, WithSty
         $this->produkId = $produkId;
     }
 
-    public function collection(): Collection
+    public function collection():Enumerable
     {
         $query = Batch::with(['produk']);
 
@@ -60,10 +60,26 @@ class BatchExports implements FromCollection, WithHeadings, WithMapping, WithSty
         ];
     }
 
+    public function columnWidths(): array
+    {
+        return [
+            'A' => 6,   // ID
+            'B' => 25,  // Produk
+            'C' => 30,  // QR Code
+            'D' => 12,  // Stok Awal
+            'E' => 15,  // Stok Saat Ini
+            'F' => 15,  // Tanggal Masuk
+            'G' => 18,  // Tanggal Kadaluarsa
+            'H' => 18,  // Lokasi Rak
+            'I' => 18,  // Dibuat Pada
+        ];
+    }
+
+    // Style untuk header
     public function styles(Worksheet $sheet): array|null
     {
         return [
-            1 => ['font' => ['bold' => true, 'size' => 13]],
+            1 => ['font' => ['bold' => true, 'size' => 12]],
             'A1:I1' => ['fill' => ['fillType' => 'solid', 'startColor' => ['rgb' => 'E5E7EB']]],
         ];
     }
