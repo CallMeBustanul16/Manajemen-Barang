@@ -38,6 +38,10 @@ class QrCodeService
     public function saveQrImage($data, $path): bool
     {
         try {
+            if (!is_dir(dirname($path))) {
+                mkdir(dirname($path), 0777, true);
+            }
+
             // Buat object QrCode
             $qrCode = new QrCode(
                 data: $data,

@@ -27,62 +27,24 @@ class QrController extends Controller
 
         $filename = 'produk-' . $produk->id . '.png';
         $path = storage_path('app/public/qrcodes/' . $filename);
-        $fileExists = file_exists($path);
 
-        if ($fileExists && $produk->qr_code) {
-            return response()->json([
-                'success' => false,
-                'message' => 'QR Code sudah ada dan file tersedia. Silakan download.',
-                'data' => [
-                    'qr_code' => $produk->qr_code,
-                    'url' => $this->qrService->getQrUrl($filename),
-                ]
-            ], 422);
-        }
-        
-        // Cek apakah sudah punya QR Code
-        if (!$fileExists) {
-
-            // Generate QR Code baru
-            $qrCode = $this->qrService->generateProdukQr($produk->id);
-            $this->qrService->saveQrImage($qrCode, $path);
-
-            // Update produk dengan qr_code baru
-            $produk->qr_code = $qrCode;
-            $produk->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'QR Code produk berhasil digenerate ulang',
-                'data' => [
-                    'qr_code' => $qrCode,
-                    'url' => $this->qrService->getQrUrl($filename),
-                ]
-            ]);
-        }
-
-        // Jika file tidak ada, tapi qr_code null (produk belum punya QR)
         if (!$produk->qr_code) {
-            $qrCode = $this->qrService->generateProdukQr($produk->id);
-            $this->qrService->saveQrImage($qrCode, $path);
-            $produk->qr_code = $qrCode;
+            $produk->qr_code = $this->qrService->generateProdukQr($produk->id);
             $produk->save();
-
-            return response()->json([
-                'success' => true,
-                'message' => 'QR Code produk berhasil digenerate',
-                'data' => [
-                    'qr_code' => $qrCode,
-                    'url' => $this->qrService->getQrUrl($filename),
-                ]
-            ]);
         }
 
-        // Fallback
+        if (!file_exists($path)) {
+            $this->qrService->saveQrImage($produk->qr_code, $path);
+        }
+
         return response()->json([
-            'success' => false,
-            'message' => 'Terjadi kesalahan tidak terduga',
-        ], 500);
+            'success' => true,
+            'message' => 'QR Code produk tersedia',
+            'data' => [
+                'qr_code' => $produk->qr_code,
+                'url' => $this->qrService->getQrUrl($filename),
+            ]
+        ]);
     }
 
     /**
@@ -91,27 +53,19 @@ class QrController extends Controller
     public function downloadProdukQr($produkId)
     {
         $produk = Produk::findOrFail($produkId);
-        
+
         if (!$produk->qr_code) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Produk belum memiliki QR Code'
-            ], 404);
-        }
-        
-        $slug = $this->qrService->slugifyFilename($produk->nama_produk, 'produk-' . $produk->id);
-        $filename = 'produk-' . $produk->id . '.png';
-        $path = storage_path('app/public/qrcodes/' . $filename);
-        
-        if (!file_exists($path)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'File QR Code tidak ditemukan. Silakan generate ulang'
-            ], 404);
+            $produk->qr_code = $this->qrService->generateProdukQr($produk->id);
+            $produk->save();
         }
 
-        $downloadName = $produk->nama_produk . '.png';
-        
+        $filename = 'produk-' . $produk->id . '.png';
+        $path = storage_path('app/public/qrcodes/' . $filename);
+
+        if (!file_exists($path)) {
+            $this->qrService->saveQrImage($produk->qr_code, $path);
+        }
+
         return response()->download($path, $filename);
     }
 
@@ -121,32 +75,22 @@ class QrController extends Controller
     public function generateBatchQr($batchId)
     {
         $batch = Batch::findOrFail($batchId);
-        
-        // Cek apakah sudah punya QR Code
-        if ($batch->qr_code) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch sudah memiliki QR Code',
-                'data' => [
-                    'qr_code' => $batch->qr_code,
-                    'url' => $this->qrService->getQrUrl('batch-' . $batch->id . '.png'),
-                ]
-            ], 422);
+        $filename = 'batch-' . $batch->id . '.png';
+        $path = storage_path('app/public/qrcodes/' . $filename);
+
+        if (!$batch->qr_code) {
+            $batch->qr_code = $this->qrService->generateAndSaveBatchQr($batch);
+            $batch->save();
+        } elseif (!file_exists($path)) {
+            $this->qrService->saveQrImage($batch->qr_code, $path);
         }
-        
-        // Generate QR Code
-        $qrCode = $this->qrService->generateAndSaveBatchQr($batch);
-        
-        // Update batch
-        $batch->qr_code = $qrCode;
-        $batch->save();
-        
+
         return response()->json([
             'success' => true,
-            'message' => 'QR Code batch berhasil digenerate',
+            'message' => 'QR Code batch tersedia',
             'data' => [
-                'qr_code' => $qrCode,
-                'url' => $this->qrService->getQrUrl('batch-' . $batch->id . '.png'),
+                'qr_code' => $batch->qr_code,
+                'url' => $this->qrService->getQrUrl($filename),
             ]
         ]);
     }
@@ -157,28 +101,19 @@ class QrController extends Controller
     public function downloadBatchQr($batchId)
     {
         $batch = Batch::findOrFail($batchId);
-        
+
         if (!$batch->qr_code) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Batch belum memiliki QR Code'
-            ], 404);
-        }
-        
-        $namaProduk = $batch->produk->nama_produk ?? 'produk';
-        $slug = $this->qrService->slugifyFilename($namaProduk, 'batch-' . $batch->id);
-        $filename = 'batch-' . $batch->id . '.png';
-        $path = storage_path('app/public/qrcodes/' . $filename);
-        
-        if (!file_exists($path)) {
-            return response()->json([
-                'success' => false,
-                'message' => 'File QR Code tidak ditemukan'
-            ], 404);
+            $batch->qr_code = $this->qrService->generateAndSaveBatchQr($batch);
+            $batch->save();
         }
 
-        $downloadName = $namaProduk . ' - Batch ' . $batch->id . '.png';
-        
+        $filename = 'batch-' . $batch->id . '.png';
+        $path = storage_path('app/public/qrcodes/' . $filename);
+
+        if (!file_exists($path)) {
+            $this->qrService->saveQrImage($batch->qr_code, $path);
+        }
+
         return response()->download($path, $filename);
     }
 
