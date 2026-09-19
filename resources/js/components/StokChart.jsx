@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Bar, Doughnut } from 'react-chartjs-2';
+import { PieChart, BarChart2 } from 'lucide-react';
 import {
     Chart as ChartJS,
     CategoryScale,
@@ -134,8 +135,9 @@ export default function StokChart() {
 
             {/* Doughnut Chart */}
             <div className="bg-white dark:bg-gray-800 p-4 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                    🍩 Distribusi Stok
+                <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4 flex items-center gap-2">
+                    <PieChart className="w-5 h-5 text-indigo-500" />
+                    <span>Distribusi Stok</span>
                 </h3>
                 <div className="h-64">
                     <Doughnut
