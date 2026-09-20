@@ -13,6 +13,7 @@ class Batch extends Model
         'qr_code',
         'jumlah_awal',
         'stok_saat_ini',
+        'kapasitas',
         'tanggal_masuk',
         'tanggal_kadaluarsa',
         'lokasi_rak',
@@ -62,5 +63,17 @@ class Batch extends Model
     public function remainingStock(): int
     {
         return $this->stok_saat_ini;
+    }
+
+    // Cek apakah batch masih bisa diisi
+    public function bisaDiisi(): bool
+    {
+        return $this->stok_saat_ini < $this->kapasitas;
+    }
+    
+    // Sisa kapasitas
+    public function sisaKapasitas(): int
+    {
+        return $this->kapasitas - $this->stok_saat_ini;
     }
 }
