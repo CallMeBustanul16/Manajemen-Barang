@@ -6,8 +6,10 @@ use App\Http\Controllers\Controller;
 use App\Models\Batch;
 use App\Models\Produk;
 use App\Models\StokTransaksi;
-use App\Services\QrCodeService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Support\Str;
 
@@ -15,9 +17,11 @@ class BatchController extends Controller
 {
     protected $qrService;
 
-    public function __construct(QrCodeService $qrService)
+    public function __construct()
     {
-        $this->qrService = $qrService;
+        // Resolve by name so this controller remains compatible with projects
+        // where the service is not available to the IDE's type indexer.
+        $this->qrService = app()->make('App\\Services\\QrCodeService');
     }
 
     /**
@@ -56,43 +60,78 @@ class BatchController extends Controller
             ], 422);
         }
 
-        // Cek produk
-        $produk = Produk::find($request->produk_id);
-        if (!$produk) {
+        $produk = Produk::findOrFail($request->produk_id);
+        $user = Auth::user();
+        $jumlahAwal = $request->jumlah_awal;
+
+        if ($produk->stok < $jumlahAwal) {
             return response()->json([
                 'success' => false,
-                'message' => 'Produk tidak ditemukan'
-            ], 404);
+                'message' => "Stok produk tidak mencukupi! Stok gudang saat ini: {$produk->stok}, dibutuhkan: {$jumlahAwal}"
+            ], 422);
         }
 
-        // Buat batch
-        $batch = Batch::create([
-            'produk_id' => $request->produk_id,
-            'jumlah_awal' => $request->jumlah_awal,
-            'stok_saat_ini' => $request->jumlah_awal,
-            'tanggal_masuk' => $request->tanggal_masuk,
-            'lokasi_rak' => $request->lokasi_rak,
-            'qr_code' => Str::uuid(),
-        ]);
+        DB::beginTransaction();
 
-        // Generate QR Code
-        $qrCode = $this->qrService->generateAndSaveBatchQr($batch);
-        $batch->qr_code = $qrCode;
-        $batch->save();
+        try {
+            // Buat batch baru
+            $batch = Batch::create([
+                'produk_id' => $request->produk_id,
+                'jumlah_awal' => $jumlahAwal,
+                'kapasitas' => $jumlahAwal,
+                'stok_saat_ini' => $jumlahAwal,
+                'tanggal_masuk' => $request->tanggal_masuk,
+                'lokasi_rak' => $request->lokasi_rak,
+                'qr_code' => Str::uuid(),
+            ]);
 
-        // Update stok produk (tambah stok dari batch baru)
-        $produk->stok += $request->jumlah_awal;
-        $produk->save();
+            // Generate QR Code
+            $qrCode = $this->qrService->generateAndSaveBatchQr($batch);
+            $batch->qr_code = $qrCode;
+            $batch->save();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch berhasil ditambahkan',
-            'data' => [
-                'batch' => $batch,
-                'produk' => $produk,
-                'qr_code_url' => $this->qrService->getQrUrl('batch-' . $batch->id . '.png')
-            ]
-        ], 201);
+            // Kurangi stok produk
+            $stokSebelum = $produk->stok;
+            $produk->stok -= $jumlahAwal;
+            $produk->save();
+
+            // Stok transaksi
+            $transaksi = StokTransaksi::create([
+                'batch_id' => $batch->id,
+                'produk_id' => $produk->id,
+                'tipe' => 'masuk',
+                'scan_mode' => 'batch',
+                'user_id' => $user->id,
+                'jumlah' => -$jumlahAwal,
+                'stok_sebelum' => $stokSebelum,
+                'stok_sesudah' => $produk->stok,
+                'catatan' => 'Batch baru dibuat (QR: ' . $qrCode . ')',
+                'tanggal' => now(),
+                'user_id' => $user->id,
+            ]);
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Batch berhasil dibuat. Stok produk berkurang {$jumlahAwal}, batch terisi {$jumlahAwal}/{$batch->kapasitas}",
+                'data' => [
+                    'batch' => $batch->load('produk'),
+                    'produk' => $produk->fresh(),
+                    'transaksi' => $transaksi,
+                    'qr_url' => $this->qrService->getQrUrl('batch-' . $batch->id . '.png'),
+                    'stok_produk_baru' => $produk->stok,
+                ]
+            ], 201);
+    
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal tambah batch: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menambah batch: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
