@@ -8,6 +8,7 @@ use App\Models\StokTransaksi;
 use App\Models\Batch;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 
@@ -29,33 +30,45 @@ class StokController extends Controller
         $batch = Batch::findOrFail($request->batch_id);
         $produk = Produk::findOrFail($request->produk_id);
         $user = Auth::user();
+        $jumlah = $request->jumlah;
+
+        if ($jumlah > $batch->sisaKapasitas()) {
+            return response()->json([
+                'success' => false,
+                'message' => "Melebihi kapasitas batch! Sisa kapasitas: {$batch->sisaKapasitas()} (isi saat ini: {$batch->stok_saat_ini}/{$batch->kapasitas})"
+            ], 422);
+        }
+        
+        if ($produk->stok < $jumlah) {
+            return response()->json([
+                'success' => false,
+                'message' => "Stok gudang tidak mencukupi! Stok saat ini: {$produk->stok}"
+            ], 422);
+        }
 
         // Mulai transaksi database
         DB::beginTransaction();
 
         try {
             $stokSebelum = $produk->stok;
-            $stokSesudah = $stokSebelum + $request->jumlah;
+            $produk->stok -= $jumlah;
+            $produk->save();
 
             // Update stok batch
             $batch->stok_saat_ini += $request->jumlah;
             $batch->save();
-
-            // Update stok produk
-            $produk->stok = $stokSesudah;
-            $produk->save();
 
             // Catat transaksi
             $transaksi = StokTransaksi::create([
                 'produk_id' => $produk->id,
                 'batch_id' => $batch->id,
                 'tipe' => 'masuk',
-                'scan_mode' => 'batch',
-                'jumlah' => $request->jumlah,
+                'scan_mode' => 'manual',
+                'jumlah' => $jumlah,
                 'stok_sebelum' => $stokSebelum,
-                'stok_sesudah' => $stokSesudah,
-                'catatan' => $request->catatan,
-                'tanggal' => now(),
+                'stok_sesudah' => $produk->stok,
+                'catatan' => $request->catatan . " (Batch #{$batch->id}: {$batch->stok_saat_ini}/{$batch->kapasitas})",
+                'tanggal' => $request->tanggal,
                 'user_id' => $user->id,
             ]);
 
@@ -63,17 +76,19 @@ class StokController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Stok berhasil ditambahkan',
+                'message' => "Stok berhasil dipindah ke batch. Stok gudang: {$produk->stok}, Batch: {$batch->stok_saat_ini}/{$batch->kapasitas}",
                 'data' => [
-                    'produk' => $produk->fresh(['kategori']),
+                    'produk' => $produk->fresh(),
                     'batch' => $batch->fresh(),
                     'transaksi' => $transaksi,
-                    'stok_baru' => $stokSesudah,
+                    'stok_produk_baru' => $produk->stok,
+                    'stok_batch_baru' => $batch->stok_saat_ini,
                 ]
             ], 201);
 
         } catch (\Exception $e) {
             DB::rollBack();
+            Log::error('Gagal isi batch: ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Gagal menambah stok: ' . $e->getMessage()
