@@ -21,7 +21,7 @@ class BatchController extends Controller
     {
         // Resolve by name so this controller remains compatible with projects
         // where the service is not available to the IDE's type indexer.
-        $this->qrService = app()->make('App\\Services\\QrCodeService');
+        $this->qrService = app()->make('App\Services\QrCodeService');
     }
 
     /**
@@ -205,22 +205,72 @@ class BatchController extends Controller
             ], 404);
         }
 
-        // Hapus stok produk
-        $produk = Produk::find($batch->produk_id);
-        if ($produk) {
-            $produk->stok -= $batch->stok_saat_ini;
-            $produk->save();
+        $produk = $batch->produk;
+
+        if (!$produk) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Produk tidak ditemukan'
+            ], 404);
         }
 
-        // Hapus file QR
-        $this->qrService->deleteQrImage('batch-' . $batch->id . '.png');
+        $user = Auth::user();
+        $isiBatch = $batch->stok_saat_ini; // Simpan nilai sebelum dihapus
 
-        $batch->delete();
+        DB::beginTransaction();
 
-        return response()->json([
-            'success' => true,
-            'message' => 'Batch berhasil dihapus',
-        ]);
+        try {
+            // Kembalikan isi batch ke stok produk
+            $stokSebelum = $produk->stok;
+            $produk->stok += $isiBatch;
+            $produk->save();
+
+            // Catat transaksi pengembalian (jika ada isi)
+            $transaksi = null;
+            if ($isiBatch > 0) {
+                $transaksi = StokTransaksi::create([
+                    'produk_id' => $produk->id,
+                    'batch_id' => null,
+                    'tipe' => 'masuk',
+                    'scan_mode' => 'batch',
+                    'jumlah' => $isiBatch,
+                    'stok_sebelum' => $stokSebelum,
+                    'stok_sesudah' => $produk->stok,
+                    'catatan' => "Batch #{$batch->id} dihapus, {$isiBatch} item dikembalikan ke gudang",
+                    'tanggal' => now(),
+                    'user_id' => $user->id,
+                ]);
+            }
+
+            // Hapus file QR Code
+            $this->qrService->deleteQrImage('batch-' . $batch->id . '.png');
+
+            // Hapus batch
+            $batch->delete();
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => $isiBatch > 0
+                    ? "Batch berhasil dihapus. {$isiBatch} item dikembalikan ke gudang."
+                    : "Batch kosong berhasil dihapus.",
+                'data' => [
+                    'produk' => $produk->fresh(),
+                    'stok_produk_baru' => $produk->stok,
+                    'item_dikembalikan' => $isiBatch,
+                    'transaksi' => $transaksi,
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal hapus batch: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal hapus batch: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
