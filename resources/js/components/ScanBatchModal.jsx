@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Package, AlertTriangle, CheckCircle, Calendar } from 'lucide-react';
+import { X, Package, AlertTriangle, CheckCircle, Calendar, Box, Info } from 'lucide-react';
 import Swal from 'sweetalert2';
 
 export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
@@ -14,15 +14,40 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
     const batch = data;
     const produk = batch.produk;
 
+    const sisaKapasitas = batch.kapasitas - batch.stok_saat_ini;
+    const penuh = sisaKapasitas <= 0;
+    const kosong = batch.stok_saat_ini <= 0;
+
     const handleSubmit = async () => {
         if (jumlah < 1) {
             Swal.fire('Error', 'Jumlah minimal 1', 'error');
             return;
         }
 
-        if (type === 'keluar' && jumlah > batch.stok_saat_ini) {
-            Swal.fire('Error', `Stok tidak mencukupi! Stok saat ini: ${batch.stok_saat_ini}`, 'error');
-            return;
+        if (type === 'keluar') {
+            if (kosong) {
+                Swal.fire('Error', 'Batch kosong! Tidak bisa dikeluarkan.', 'error');
+                return;
+            }
+            if (jumlah > batch.stok_saat_ini) {
+                Swal.fire('Error', `Stok batch tidak mencukupi! Stok batch: ${batch.stok_saat_ini}`, 'error');
+                return;
+            }
+        }
+
+        if (type === 'masuk') {
+            if (penuh) {
+                Swal.fire('Error', 'Batch penuh! Tidak bisa diisi lagi.', 'error');
+                return;
+            }
+            if (jumlah > sisaKapasitas) {
+                Swal.fire('Error', `Melebihi kapasitas! Sisa kapasitas: ${sisaKapasitas}`, 'error');
+                return;
+            }
+            if (produk.stok !== undefined && jumlah > produk.stok) {
+                Swal.fire('Error', `Stok gudang tidak mencukupi! Stok: ${produk.stok}`, 'error');
+                return;
+            }
         }
 
         if (!tanggal) {
@@ -51,13 +76,7 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
                 },
-                body: JSON.stringify({
-                    produk_id: produk.id,
-                    batch_id: batch.id,
-                    jumlah: jumlah,
-                    catatan: catatan || `Scan Batch: ${batch.qr_code}`,
-                    tanggal: tanggal,
-                }),
+                body: JSON.stringify(payload),
             });
 
             const result = await response.json();
@@ -65,38 +84,33 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
             if (response.ok) {
                 Swal.fire({
                     title: 'Berhasil!',
-                    text: `${jumlah} ${produk.nama_produk} berhasil ${type === 'masuk' ? 'ditambahkan' : 'dikeluarkan'}`,
+                    html: `
+                        <p>${jumlah} ${produk.nama_produk} berhasil ${type === 'masuk' ? 'ditambahkan ke' : 'dikeluarkan dari'} batch.</p>
+                        <p>Batch #${batch.id}: <strong>${result.data.stok_batch_baru}/${batch.kapasitas}</strong></p>
+                    `,
                     icon: 'success',
-                    timer: 1500,
+                    timer: 2500,
                     showConfirmButton: false,
                 });
                 onSuccess();
                 onClose();
             } else {
-                console.error('❌ Transaction error:', {
-                    status: response.status,
-                    statusText: response.statusText,
-                    result
-                });
-            
-                Swal.fire({
-                    title: `Error ${response.status}`,
-                    text: result.message || 'Gagal memproses transaksi',
-                    icon: 'error'
-                });
+                Swal.fire('Error', result.message || 'Gagal memproses transaksi', 'error');
             }
         } catch (error) {
-            console.error('❌ Error processing transaction:', error);
-                
-            Swal.fire({
-                title: 'Error',
-                text: error.message || 'Gagal memproses transaksi',
-                icon: 'error'
-            });
+            console.error('Error processing transaction:', error);
+            Swal.fire('Error', 'Gagal memproses transaksi', 'error');
         } finally {
             setLoading(false);
         }
     };
+
+    const handleTypeChange = (newType) => {
+        setType(newType);
+        setJumlah(1);
+    };
+
+    const maxJumlah = type === 'masuk' ? sisaKapasitas : batch.stok_saat_ini;
 
     const isLowStock = batch.stok_saat_ini <= (produk.stok_minimal || 3);
 
@@ -119,7 +133,7 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
 
                 {/* Body */}
                 <div className="p-4 space-y-4">
-                    {/* Info Produk */}
+                    {/* Info Batch */}
                     <div className="bg-gray-50 dark:bg-gray-700/50 rounded-lg p-4 space-y-2">
                         <div className="flex justify-between">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Produk</span>
@@ -127,54 +141,102 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
                         </div>
                         <div className="flex justify-between">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Batch ID</span>
-                            <span className="font-mono text-xs text-gray-600 dark:text-gray-400">{batch.id}</span>
+                            <span className="font-mono text-xs text-gray-600 dark:text-gray-400">#{batch.id}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-sm text-gray-500 dark:text-gray-400">Lokasi</span>
                             <span className="text-sm text-gray-700 dark:text-gray-300">{batch.lokasi_rak || '-'}</span>
                         </div>
-                        <div className="flex justify-between items-center">
-                            <span className="text-sm text-gray-500 dark:text-gray-400">Stok Saat Ini</span>
-                            <div className="flex items-center gap-2">
-                                <span className={`text-lg font-bold ${isLowStock ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}`}>
-                                    {batch.stok_saat_ini}
+
+                        {/* Progress Bar */}
+                        <div className="pt-2 border-t border-gray-200 dark:border-gray-600">
+                            <div className="flex items-center justify-between text-sm mb-2">
+                                <span className="text-gray-500 dark:text-gray-400">Isi / Kapasitas</span>
+                                <span className={`font-bold ${
+                                    penuh ? 'text-green-600 dark:text-green-400' :
+                                    kosong ? 'text-red-600 dark:text-red-400' :
+                                    'text-blue-600 dark:text-blue-400'
+                                }`}>
+                                    {batch.stok_saat_ini}/{batch.kapasitas}
                                 </span>
-                                {isLowStock && (
-                                    <AlertTriangle className="w-4 h-4 text-red-500" />
-                                )}
+                            </div>
+                            <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                <div
+                                    className={`h-2 rounded-full transition-all ${
+                                        penuh ? 'bg-green-500' :
+                                        kosong ? 'bg-red-500' :
+                                        'bg-blue-500'
+                                    }`}
+                                    style={{ width: `${batch.kapasitas > 0 ? (batch.stok_saat_ini / batch.kapasitas) * 100 : 0}%` }}
+                                ></div>
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                <span>Sisa kapasitas: <strong>{sisaKapasitas}</strong></span>
+                                <span>{batch.kapasitas > 0 ? Math.round((batch.stok_saat_ini / batch.kapasitas) * 100) : 0}%</span>
                             </div>
                         </div>
-                        <div className="flex justify-between text-sm">
-                            <span className="text-gray-500 dark:text-gray-400">Stok Awal</span>
-                            <span className="text-gray-700 dark:text-gray-300">{batch.jumlah_awal}</span>
-                        </div>
+
+                        {/* Status Warning */}
+                        {penuh && (
+                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400 text-xs bg-green-50 dark:bg-green-900/20 p-2 rounded">
+                                <Info className="w-3 h-3" />
+                                <span>Batch penuh — tidak bisa diisi lagi</span>
+                            </div>
+                        )}
+                        {kosong && (
+                            <div className="flex items-center gap-2 text-red-600 dark:text-red-400 text-xs bg-red-50 dark:bg-red-900/20 p-2 rounded">
+                                <AlertTriangle className="w-3 h-3" />
+                                <span>Batch kosong — tidak bisa dikeluarkan</span>
+                            </div>
+                        )}
                     </div>
 
                     {/* Pilihan Masuk / Keluar */}
                     <div className="flex gap-3">
                         <button
-                            onClick={() => setType('masuk')}
+                            onClick={() => handleTypeChange('masuk')}
+                            disabled={penuh}
                             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                                 type === 'masuk'
                                     ? 'bg-green-600 text-white'
                                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                            }`}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             📥 Masuk
                         </button>
                         <button
-                            onClick={() => setType('keluar')}
+                            onClick={() => handleTypeChange('keluar')}
+                            disabled={kosong}
                             className={`flex-1 py-2 px-4 rounded-lg font-medium transition-colors ${
                                 type === 'keluar'
                                     ? 'bg-red-600 text-white'
                                     : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-600'
-                            }`}
+                            } disabled:opacity-50 disabled:cursor-not-allowed`}
                         >
                             📤 Keluar
                         </button>
                     </div>
 
-                    {/* Input Tanggal */}
+                    {/* Jumlah */}
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                            Jumlah <span className="text-red-500">*</span>
+                        </label>
+                        <input
+                            type="number"
+                            value={jumlah}
+                            onChange={(e) => setJumlah(Math.max(1, parseInt(e.target.value) || 1))}
+                            min="1"
+                            max={maxJumlah}
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
+                        />
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Maksimal: <strong>{maxJumlah}</strong>
+                            {type === 'masuk' ? ' (sisa kapasitas)' : ' (stok batch)'}
+                        </p>
+                    </div>
+
+                    {/* Tanggal */}
                     <div>
                         <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                             Tanggal <span className="text-red-500">*</span>
@@ -185,28 +247,9 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
                                 type="date"
                                 value={tanggal}
                                 onChange={(e) => setTanggal(e.target.value)}
-                                className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                                className="w-full pl-9 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
                             />
                         </div>
-                    </div>
-
-                    {/* Input Jumlah */}
-                    <div>
-                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                            Jumlah
-                        </label>
-                        <input
-                            type="number"
-                            value={jumlah}
-                            onChange={(e) => setJumlah(Math.max(1, parseInt(e.target.value) || 1))}
-                            min="1"
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
-                        />
-                        {type === 'keluar' && batch.stok_saat_ini > 0 && (
-                            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                Maksimal: {batch.stok_saat_ini}
-                            </p>
-                        )}
                     </div>
 
                     {/* Catatan */}
@@ -218,7 +261,7 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
                             type="text"
                             value={catatan}
                             onChange={(e) => setCatatan(e.target.value)}
-                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none transition-colors"
+                            className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-900 text-gray-900 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none transition-colors"
                             placeholder="Tambahkan catatan..."
                         />
                     </div>
@@ -234,7 +277,7 @@ export default function ScanBatchModal({ isOpen, onClose, data, onSuccess }) {
                     </button>
                     <button
                         onClick={handleSubmit}
-                        disabled={loading}
+                        disabled={loading || (type === 'masuk' && penuh) || (type === 'keluar' && kosong)}
                         className={`flex-1 py-2 px-4 rounded-lg text-white font-medium transition-colors ${
                             type === 'masuk'
                                 ? 'bg-green-600 hover:bg-green-700'

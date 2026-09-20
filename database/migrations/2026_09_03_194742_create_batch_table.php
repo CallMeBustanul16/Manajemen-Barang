@@ -16,6 +16,7 @@ return new class extends Migration
             $table->integer('stok_saat_ini')->default(0);
             $table->date('tanggal_masuk');
             $table->string('lokasi_rak')->nullable();
+            $table->integer('kapasitas')->default(0)->after('jumlah_awal');
             $table->timestamps();
 
             // Index untuk performa query

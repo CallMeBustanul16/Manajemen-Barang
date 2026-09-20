@@ -340,10 +340,20 @@ export default function StokIndex() {
                                                 </td>
                                                 <td className="px-4 py-3 text-center font-bold font-mono text-gray-900 dark:text-white">{item.jumlah}</td>
                                                 <td className="px-4 py-3">
-                                                    <span className="text-gray-400">{item.stok_sebelum}</span>
-                                                    <span className="mx-1 text-gray-400">→</span>
-                                                    <span className="font-semibold text-gray-900 dark:text-white">{item.stok_sesudah}</span>
+                                                    <div className="flex items-center gap-1">
+                                                        <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                                                            isMasuk 
+                                                                ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
+                                                                : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'
+                                                        }`}>
+                                                            {isMasuk ? 'Batch' : 'Batch'}
+                                                        </span>
+                                                        <span className="text-gray-400">{item.stok_sebelum}</span>
+                                                        <span className="mx-1 text-gray-400">→</span>
+                                                        <span className="font-semibold text-gray-900 dark:text-white">{item.stok_sesudah}</span>
+                                                    </div>
                                                 </td>
+
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{item.user?.name || '-'}</td>
                                                 <td className="px-4 py-3 text-gray-400">
                                                     {item.tanggal ? dateTimeFormatter.format(new Date(item.tanggal)) : '-'}
