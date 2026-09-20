@@ -15,13 +15,11 @@ class Batch extends Model
         'stok_saat_ini',
         'kapasitas',
         'tanggal_masuk',
-        'tanggal_kadaluarsa',
         'lokasi_rak',
     ];
 
     protected $casts = [
         'tanggal_masuk' => 'date',
-        'tanggal_kadaluarsa' => 'date',
         'jumlah_awal' => 'integer',
         'kapasitas' => 'integer',
         'stok_saat_ini' => 'integer',
