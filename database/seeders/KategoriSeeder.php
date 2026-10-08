@@ -41,7 +41,7 @@ class KategoriSeeder extends Seeder
         ];
 
         foreach ($kategori as $data) {
-            \App\Models\Kategori::create($data);
+            \App\Models\Kategori::firstOrCreate(['slug' => $data['slug']], $data);
         }
     }
 }

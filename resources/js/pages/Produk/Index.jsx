@@ -17,7 +17,27 @@ export default function ProdukHome() {
     const [qrModalProduk, setQrModalProduk] = useState(null);
     const [qrModalImage, setQrModalImage] = useState(null);
     const [qrLoading, setQrLoading] = useState(false);
-    const perPage = 10;
+    
+    // Dynamic pagination from user settings (Point 5)
+    const [perPage, setPerPage] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return parseInt(s.pagination_limit, 10) || 10;
+        } catch {
+            return 10;
+        }
+    });
+
+    useEffect(() => {
+        const handleSettingsChange = (e) => {
+            if (e.detail?.pagination_limit) {
+                setPerPage(parseInt(e.detail.pagination_limit, 10) || 10);
+                setCurrentPage(1);
+            }
+        };
+        window.addEventListener('app-settings-changed', handleSettingsChange);
+        return () => window.removeEventListener('app-settings-changed', handleSettingsChange);
+    }, []);
 
     // Fetch API HANYA sekali saat komponen pertama di-mount
     useEffect(() => {

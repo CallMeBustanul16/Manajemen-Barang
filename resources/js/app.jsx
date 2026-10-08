@@ -6,6 +6,7 @@ import '../css/app.css';
 
 // Context
 import { DarkModeProvider, gunakanDarkMode } from './context/DarkModeContext';
+import { LanguageProvider } from './context/LanguageContext';
 
 // Kumpulan Semuan Library dan Halaman
 // import './bootstrap';
@@ -56,6 +57,10 @@ import BatchDetail from './pages/Batch/Detail';
 
 // Import Laporan
 import HomeLaporan from './pages/Laporan/Index';
+
+// Import Profil & Pengaturan
+import ProfilePage from './pages/Profile/ProfilePage';
+import SettingsPage from './pages/Settings/SettingsPage';
 
 // Jika membutuhkan PrivateRoute, maka uncomment code dibawah
 import PrivateRoute from './components/PrivateRoute';
@@ -241,6 +246,46 @@ function AppContent() {
                         </MainLayout>
                     </PrivateRoute>
                 } />
+
+                {/* Profil Saya */}
+                <Route path="/profil" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <ProfilePage />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/profile" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <ProfilePage />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+
+                {/* Pengaturan / Setting */}
+                <Route path="/pengaturan" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <SettingsPage />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/setting" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <SettingsPage />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/settings" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <SettingsPage />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+
                 <Route path="*" element={<Navigate to="/dashboard" replace />} />
             </Routes>
         </BrowserRouter>
@@ -250,7 +295,9 @@ function AppContent() {
 function App() {
     return (
         <DarkModeProvider>
-            <AppContent />
+            <LanguageProvider>
+                <AppContent />
+            </LanguageProvider>
         </DarkModeProvider>
     );
 }

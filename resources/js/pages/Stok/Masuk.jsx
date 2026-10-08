@@ -124,6 +124,33 @@ export default function StokBarangMasuk() {
             return;
         }
 
+        // Point 2: Cek Preferensi Mode Konfirmasi Transaksi Stok (Safe Mode vs Quick Mode)
+        let isSafeMode = true;
+        try {
+            const prefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
+            if (prefs.confirm_transaction === false) {
+                isSafeMode = false;
+            }
+        } catch (e) {}
+
+        if (isSafeMode) {
+            const confirmResult = await Swal.fire({
+                title: 'Konfirmasi Stok Masuk',
+                text: `Apakah Anda yakin ingin memproses mutasi stok masuk sebanyak ${formData.jumlah} unit ke batch "${selectedBatch.nama_batch || selectedBatch.nomor_batch || ''}"?`,
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonColor: '#b91c1c',
+                cancelButtonColor: '#64748b',
+                confirmButtonText: 'Ya, Proses Masuk',
+                cancelButtonText: 'Batal',
+            });
+
+            if (!confirmResult.isConfirmed) {
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             // Kirim request ke API stok masuk
             const token = localStorage.getItem('token');

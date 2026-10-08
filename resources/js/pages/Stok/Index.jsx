@@ -27,7 +27,26 @@ export default function StokIndex() {
     const [totalItems, setTotalItems] = useState(0);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [showMobileFilter, setShowMobileFilter] = useState(false);
-    const perPage = 10;
+    // Dynamic pagination from user settings (Point 5)
+    const [perPage, setPerPage] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return parseInt(s.pagination_limit, 10) || 10;
+        } catch {
+            return 10;
+        }
+    });
+
+    useEffect(() => {
+        const handleSettingsChange = (e) => {
+            if (e.detail?.pagination_limit) {
+                setPerPage(parseInt(e.detail.pagination_limit, 10) || 10);
+                setCurrentPage(1);
+            }
+        };
+        window.addEventListener('app-settings-changed', handleSettingsChange);
+        return () => window.removeEventListener('app-settings-changed', handleSettingsChange);
+    }, []);
 
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
@@ -72,7 +91,7 @@ export default function StokIndex() {
         } finally {
             setLoading(false);
         }
-    }, [currentPage, filterTipe, filterProduk, filterStartDate, filterEndDate]);
+    }, [currentPage, perPage, filterTipe, filterProduk, filterStartDate, filterEndDate]);
 
     useEffect(() => {
         fetchTransactions();

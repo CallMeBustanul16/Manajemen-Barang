@@ -52,6 +52,21 @@ export default function BuatProduk() {
         };
     }, []);
 
+    // Standardisasi Kode & Prefix SKU Gudang (Point 4)
+    useEffect(() => {
+        try {
+            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const prefix = settings.sku_prefix || 'PRD-';
+            const randomCode = Math.floor(1000 + Math.random() * 9000);
+            setFormData(prev => {
+                if (!prev.sku) {
+                    return { ...prev, sku: `${prefix}${randomCode}` };
+                }
+                return prev;
+            });
+        } catch (e) {}
+    }, []);
+
     const handleChange = (e) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));

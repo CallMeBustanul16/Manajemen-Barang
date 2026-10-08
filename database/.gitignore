@@ -1,1 +1,4 @@
-*.sqlite*
+# Ignore other sqlite temp files but track database.sqlite
+*.sqlite-journal
+*.sqlite-shm
+*.sqlite-wal

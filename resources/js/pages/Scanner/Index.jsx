@@ -13,9 +13,37 @@ export default function ScannerHome() {
     const [result, setResult] = useState(null);
     const [loading, setLoading] = useState(false);
     const [modalOpen, setModalOpen] = useState(false);
-    const [facingMode, setFacingMode] = useState('environment');
+    const [facingMode, setFacingMode] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return s.scanner_camera || 'environment';
+        } catch {
+            return 'environment';
+        }
+    });
     const [error, setError] = useState(null);
     const html5QrCodeRef = useRef(null);
+
+    // Audio Beep Effect via Web Audio API (Point 2)
+    const playScannerBeep = () => {
+        try {
+            const AudioCtx = window.AudioContext || window.webkitAudioContext;
+            if (!AudioCtx) return;
+            const ctx = new AudioCtx();
+            const osc = ctx.createOscillator();
+            const gain = ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(880, ctx.currentTime);
+            gain.gain.setValueAtTime(0.18, ctx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.14);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+            osc.start();
+            osc.stop(ctx.currentTime + 0.14);
+        } catch (e) {
+            console.warn('Web Audio beep notice:', e);
+        }
+    };
 
     // Fungsi selectMode
     const selectMode = (mode) => {
@@ -165,9 +193,20 @@ export default function ScannerHome() {
 
             if (response.ok) {
                 setResult(data);
-                if (data.mode === 'batch') {
-                    setModalOpen(true);
-                } else {
+
+                // Settings preference checks (Point 2)
+                let appSettings = {};
+                try {
+                    appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+                } catch (e) {}
+
+                // Beep sound
+                if (appSettings.scanner_sound !== false) {
+                    playScannerBeep();
+                }
+
+                // Auto open modal vs review first
+                if (appSettings.scanner_auto_submit !== false) {
                     setModalOpen(true);
                 }
             } else {
@@ -355,10 +394,21 @@ export default function ScannerHome() {
 
             {/* Result Display */}
             {result && (
-                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 dark:text-white mb-4">
-                        Hasil Scan
-                    </h3>
+                <div className="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 space-y-4">
+                    <div className="flex items-center justify-between">
+                        <h3 className="text-lg font-semibold text-gray-900 dark:text-white">
+                            Hasil Scan
+                        </h3>
+                        {!modalOpen && (
+                            <button
+                                type="button"
+                                onClick={() => setModalOpen(true)}
+                                className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg text-xs font-semibold transition cursor-pointer"
+                            >
+                                Buka Formulir Transaksi
+                            </button>
+                        )}
+                    </div>
                     <pre className="text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700 p-4 rounded-lg overflow-x-auto">
                         {JSON.stringify(result, null, 2)}
                     </pre>

@@ -34,7 +34,7 @@ class PemasokSeeder extends Seeder
         ];
 
         foreach ($pemasok as $data) {
-            \App\Models\Pemasok::create($data);
+            \App\Models\Pemasok::firstOrCreate(['nama_pemasok' => $data['nama_pemasok']], $data);
         }
     }
 }

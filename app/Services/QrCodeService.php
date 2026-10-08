@@ -27,12 +27,16 @@ class QrCodeService
 
     public function generateBatchQr($batchId, $produkId): string
     {
-        return 'BATCH-' . $produkId . '-' . $batchId . '-' . Str::random(6);
+        $settings = \Illuminate\Support\Facades\Cache::get('app_settings', []);
+        $prefix = !empty($settings['batch_prefix']) ? rtrim($settings['batch_prefix'], '-') . '-' : 'LOT-';
+        return $prefix . $produkId . '-' . $batchId . '-' . Str::random(6);
     }
 
     public function generateProdukQr($produkId): string
     {
-        return 'PRODUK-' . $produkId . '-' . Str::random(8);
+        $settings = \Illuminate\Support\Facades\Cache::get('app_settings', []);
+        $prefix = !empty($settings['sku_prefix']) ? rtrim($settings['sku_prefix'], '-') . '-' : 'PRD-';
+        return $prefix . $produkId . '-' . Str::random(8);
     }
 
     public function saveQrImage($data, $path): bool

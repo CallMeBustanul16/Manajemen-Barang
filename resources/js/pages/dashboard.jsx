@@ -1,207 +1,480 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Package, Tag, Truck, AlertTriangle, TrendingUp, TrendingDown,
-    Box, Clock, ArrowRight, ArrowDown, ArrowUp, RefreshCw
+    Package, Layers, Tag, AlertTriangle, XCircle,
+    Calendar, ArrowRight, ArrowUp, ArrowDown, CheckCircle2, RotateCw
 } from 'lucide-react';
-import Swal from 'sweetalert2';
-import StokChart from '../components/StokChart';
-import StokAlert from '../components/StokAlert';
-
-// Instance Formatter diletakkan secara global (Static Cache)
-const timeFormatter = new Intl.DateTimeFormat('id-ID', { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' });
+import { gunakanDarkMode } from '../context/DarkModeContext';
+import { useLanguage } from '../context/LanguageContext';
+import StokKategoriChart from '../components/dashboard/StokKategoriChart';
+import StokMenipisTable from '../components/dashboard/StokMenipisTable';
+import StokMovementChart from '../components/dashboard/StokMovementChart';
+import AktivitasTerbaru from '../components/dashboard/AktivitasTerbaru';
+import AksiCepat from '../components/dashboard/AksiCepat';
 
 export default function Dashboard() {
+    const { darkMode } = gunakanDarkMode();
+    const { t, language } = useLanguage();
+    const [user, setUser] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [isRefreshing, setIsRefreshing] = useState(false);
+    const [lastUpdated, setLastUpdated] = useState(new Date());
+    const [autoRefreshActive, setAutoRefreshActive] = useState(false);
+    const [refreshInterval, setRefreshInterval] = useState(5);
+    const [currencyFormat, setCurrencyFormat] = useState('IDR');
+    const [numberFormat, setNumberFormat] = useState('id');
+    const [showStockCount, setShowStockCount] = useState(true);
+
     const [stats, setStats] = useState({
         total_produk: 0,
+        total_stok: 0,
         total_kategori: 0,
         total_pemasok: 0,
+        total_batch: 0,
+        nilai_persediaan: null,
+        raw_nilai_persediaan: 0,
         produk_stok_menipis: 0,
         produk_stok_habis: 0,
+        trends: {
+            total_produk: { val: '0%', up: true, isDanger: false },
+            total_stok: { val: '0%', up: true, isDanger: false },
+            total_kategori: { val: '0 Kategori', up: true, isDanger: false },
+            stok_menipis: { val: 'Aman', up: false, isDanger: false },
+            stok_habis: { val: 'Aman', up: false, isDanger: false },
+        }
     });
-    const [activities, setActivities] = useState([]);
-    const [loading, setLoading] = useState(true);
-    const [lastUpdated, setLastUpdated] = useState(null);
 
-    const loadDashboardData = useCallback(async () => {
-        setLoading(true);
-        const token = localStorage.getItem('token');
-        const headers = { 
-            'Authorization': `Bearer ${token}`, 
-            'Accept': 'application/json' 
+    const [kategoriData, setKategoriData] = useState(null);
+    const [lowStockProducts, setLowStockProducts] = useState([]);
+    const [movementData, setMovementData] = useState(null);
+    const [activities, setActivities] = useState([]);
+    const [currentTime, setCurrentTime] = useState(new Date());
+
+    // Sync app settings from localStorage and reactive events
+    useEffect(() => {
+        const syncSettings = (customData) => {
+            let settingsObj = customData;
+            if (!settingsObj) {
+                try {
+                    const saved = localStorage.getItem('appSettings');
+                    settingsObj = saved ? JSON.parse(saved) : {};
+                } catch (e) {
+                    settingsObj = {};
+                }
+            }
+            if (settingsObj) {
+                if (typeof settingsObj.auto_refresh !== 'undefined') {
+                    setAutoRefreshActive(Boolean(settingsObj.auto_refresh));
+                }
+                if (typeof settingsObj.refresh_interval !== 'undefined') {
+                    setRefreshInterval(parseInt(settingsObj.refresh_interval, 10) || 5);
+                }
+                if (typeof settingsObj.currency_format !== 'undefined') {
+                    setCurrencyFormat(settingsObj.currency_format || 'IDR');
+                }
+                if (typeof settingsObj.number_format !== 'undefined') {
+                    setNumberFormat(settingsObj.number_format || 'id');
+                }
+                if (typeof settingsObj.show_stock !== 'undefined') {
+                    setShowStockCount(Boolean(settingsObj.show_stock));
+                }
+            }
         };
 
-        try {
-            const [statsRes, activitiesRes] = await Promise.all([
-                fetch('/api/dashboard/stats', { headers }),
-                fetch('/api/dashboard/recent-activities', { headers })
-            ]);
+        syncSettings();
 
-            if (statsRes.ok) {
-                const result = await statsRes.json();
-                const data = result.data || result;
-                setStats({
-                    total_produk: data.total_produk || 0,
-                    total_kategori: data.total_kategori || 0,
-                    total_pemasok: data.total_pemasok || 0,
-                    produk_stok_menipis: data.produk_stok_menipis || 0,
-                    produk_stok_habis: data.produk_stok_habis || 0,
-                });
-            }
+        const handleSettingsEvent = (e) => syncSettings(e?.detail);
+        const handleStorageEvent = (e) => {
+            if (e.key === 'appSettings') syncSettings();
+        };
 
-            if (activitiesRes.ok) {
-                const result = await activitiesRes.json();
-                setActivities(Array.isArray(result.data) ? result.data : []);
-            }
+        window.addEventListener('app-settings-changed', handleSettingsEvent);
+        window.addEventListener('storage', handleStorageEvent);
 
-            setLastUpdated(new Date());
-        } catch (error) {
-            console.error('Error fetching dashboard data:', error);
-            Swal.fire('Error', 'Gagal memuat data dashboard', 'error');
-        } finally {
-            setLoading(false);
-        }
+        return () => {
+            window.removeEventListener('app-settings-changed', handleSettingsEvent);
+            window.removeEventListener('storage', handleStorageEvent);
+        };
     }, []);
 
     useEffect(() => {
-        loadDashboardData();
-    }, [loadDashboardData]);
+        const userData = localStorage.getItem('user');
+        if (userData) {
+            try {
+                setUser(JSON.parse(userData));
+            } catch (e) {
+                console.error(e);
+            }
+        }
 
-    const statCards = useMemo(() => [
-        { title: 'Total Produk', value: stats.total_produk, icon: Package, border: 'border-l-4 border-l-red-600' },
-        { title: 'Total Kategori', value: stats.total_kategori, icon: Tag, border: 'border-l-4 border-l-emerald-600' },
-        { title: 'Total Pemasok', value: stats.total_pemasok, icon: Truck, border: 'border-l-4 border-l-purple-600' },
-        { title: 'Stok Menipis', value: stats.produk_stok_menipis, icon: AlertTriangle, border: 'border-l-4 border-l-amber-500', isWarning: stats.produk_stok_menipis > 0 },
-        { title: 'Stok Habis', value: stats.produk_stok_habis, icon: Box, border: 'border-l-4 border-l-rose-600', isDanger: stats.produk_stok_habis > 0 },
-    ], [stats]);
+        const timer = setInterval(() => {
+            setCurrentTime(new Date());
+        }, 1000);
 
-    const quickActions = [
-        { to: '/produk/create', icon: Package, label: 'Tambah Produk' },
-        { to: '/stok/masuk', icon: TrendingUp, label: 'Stok Masuk' },
-        { to: '/stok/keluar', icon: TrendingDown, label: 'Stok Keluar' },
-        { to: '/kategori', icon: Tag, label: 'Kategori' },
+        return () => clearInterval(timer);
+    }, []);
+
+    const fetchAllDashboardData = useCallback(async (isSilent = false) => {
+        if (!isSilent) {
+            setLoading(true);
+        } else {
+            setIsRefreshing(true);
+        }
+
+        const token = localStorage.getItem('token');
+        const headers = {
+            'Authorization': `Bearer ${token}`,
+            'Accept': 'application/json'
+        };
+
+        try {
+            const [statsRes, chartRes, lowStockRes, movementRes, activitiesRes] = await Promise.allSettled([
+                fetch('/api/dashboard/stats', { headers }),
+                fetch('/api/dashboard/stok-chart', { headers }),
+                fetch('/api/dashboard/low-stock', { headers }),
+                fetch('/api/dashboard/movement-chart', { headers }),
+                fetch('/api/dashboard/recent-activities', { headers })
+            ]);
+
+            if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
+                const res = await statsRes.value.json();
+                if (res.data) {
+                    setStats(prev => ({
+                        ...prev,
+                        total_produk: res.data.total_produk ?? prev.total_produk,
+                        total_stok: res.data.total_stok ?? prev.total_stok,
+                        total_kategori: res.data.total_kategori ?? prev.total_kategori,
+                        total_pemasok: res.data.total_pemasok ?? prev.total_pemasok,
+                        total_batch: res.data.total_batch ?? prev.total_batch,
+                        nilai_persediaan: res.data.nilai_persediaan ?? prev.nilai_persediaan,
+                        raw_nilai_persediaan: res.data.raw_nilai_persediaan ?? prev.raw_nilai_persediaan,
+                        produk_stok_menipis: res.data.produk_stok_menipis ?? prev.produk_stok_menipis,
+                        produk_stok_habis: res.data.produk_stok_habis ?? prev.produk_stok_habis,
+                        trends: res.data.trends ?? prev.trends
+                    }));
+                }
+            }
+
+            if (chartRes.status === 'fulfilled' && chartRes.value.ok) {
+                const res = await chartRes.value.json();
+                setKategoriData(res.data || null);
+            }
+
+            if (lowStockRes.status === 'fulfilled' && lowStockRes.value.ok) {
+                const res = await lowStockRes.value.json();
+                setLowStockProducts(Array.isArray(res.data) ? res.data : []);
+            }
+
+            if (movementRes.status === 'fulfilled' && movementRes.value.ok) {
+                const res = await movementRes.value.json();
+                setMovementData(res.data || null);
+            }
+
+            if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
+                const res = await activitiesRes.value.json();
+                setActivities(Array.isArray(res.data) ? res.data : []);
+            }
+
+            setLastUpdated(new Date());
+        } catch (err) {
+            console.error('Error fetching real dashboard data:', err);
+        } finally {
+            setLoading(false);
+            setIsRefreshing(false);
+        }
+    }, []);
+
+    // Initial data load
+    useEffect(() => {
+        fetchAllDashboardData();
+    }, [fetchAllDashboardData]);
+
+    // Auto-refresh interval (Point 1: 1m, 3m, 5m, 10m)
+    useEffect(() => {
+        if (!autoRefreshActive) return;
+
+        const intervalMs = (refreshInterval || 5) * 60 * 1000;
+        const interval = setInterval(() => {
+            fetchAllDashboardData(true);
+        }, intervalMs);
+
+        return () => clearInterval(interval);
+    }, [autoRefreshActive, refreshInterval, fetchAllDashboardData]);
+
+    const dateFormatted = useMemo(() => {
+        try {
+            return new Intl.DateTimeFormat(language === 'en' ? 'en-US' : 'id-ID', {
+                weekday: 'long',
+                day: 'numeric',
+                month: 'long',
+                year: 'numeric'
+            }).format(currentTime);
+        } catch {
+            return language === 'en' ? 'Monday, 5 October 2026' : 'Senin, 5 Oktober 2026';
+        }
+    }, [currentTime, language]);
+
+    const timeFormatted = useMemo(() => {
+        try {
+            const timePart = currentTime.toLocaleTimeString(language === 'en' ? 'en-US' : 'id-ID', {
+                hour: '2-digit',
+                minute: '2-digit'
+            }).replace('.', ':');
+            return `${timePart} ${language === 'en' ? 'UTC+7' : 'WIB'}`;
+        } catch {
+            return '12:30 WIB';
+        }
+    }, [currentTime, language]);
+
+    const lastUpdatedFormatted = useMemo(() => {
+        if (!lastUpdated) return '';
+        const h = String(lastUpdated.getHours()).padStart(2, '0');
+        const m = String(lastUpdated.getMinutes()).padStart(2, '0');
+        const s = String(lastUpdated.getSeconds()).padStart(2, '0');
+        return `${h}:${m}:${s}`;
+    }, [lastUpdated]);
+
+    // Format number by user preferences (Point 5 & 6)
+    const formatNumberBySetting = useCallback((num) => {
+        if (num === null || typeof num === 'undefined') return '0';
+        const locale = numberFormat === 'en' ? 'en-US' : 'id-ID';
+        return Number(num).toLocaleString(locale);
+    }, [numberFormat]);
+
+    // 4 Stat Cards Utama terhubung 100% dengan database
+    const statCards = [
+        {
+            title: t('totalProductsStat'),
+            value: formatNumberBySetting(stats.total_produk || 0),
+            icon: Package,
+            trendVal: stats.trends?.total_produk?.val || '0%',
+            trendUp: stats.trends?.total_produk?.up ?? true,
+            isDanger: false,
+            desc: language === 'en' ? 'registered in system' : 'terdaftar di sistem',
+        },
+        {
+            title: t('totalStockStat'),
+            value: showStockCount 
+                ? formatNumberBySetting(stats.total_stok || 0)
+                : '••••••',
+            icon: Layers,
+            trendVal: stats.trends?.total_stok?.val || '0%',
+            trendUp: stats.trends?.total_stok?.up ?? true,
+            isDanger: false,
+            desc: language === 'en' ? 'inventory units' : 'unit persediaan',
+        },
+        {
+            title: t('lowStockStat'),
+            value: stats.produk_stok_menipis,
+            icon: AlertTriangle,
+            trendVal: stats.trends?.stok_menipis?.val || (stats.produk_stok_menipis > 0 ? (language === 'en' ? 'Restock Needed' : 'Perlu Restock') : (language === 'en' ? 'Healthy' : 'Aman')),
+            trendUp: stats.produk_stok_menipis > 0,
+            isDanger: stats.produk_stok_menipis > 0,
+            desc: stats.produk_stok_menipis > 0 ? (language === 'en' ? 'below minimum' : 'di bawah minimum') : (language === 'en' ? 'normal condition' : 'kondisi normal'),
+        },
+        {
+            title: t('outOfStockStat'),
+            value: stats.produk_stok_habis,
+            icon: XCircle,
+            trendVal: stats.trends?.stok_habis?.val || (stats.produk_stok_habis > 0 ? (language === 'en' ? 'Empty' : 'Habis') : (language === 'en' ? 'Healthy' : 'Aman')),
+            trendUp: stats.produk_stok_habis > 0,
+            isDanger: stats.produk_stok_habis > 0,
+            desc: stats.produk_stok_habis > 0 ? (language === 'en' ? 'order immediately' : 'segera pesan') : (language === 'en' ? 'zero items empty' : 'tidak ada yang 0'),
+        },
     ];
 
-    if (loading && !lastUpdated) {
-        return (
-            <div className="flex items-center justify-center min-h-[50vh] text-xs text-gray-500">
-                Memuat data gudang...
-            </div>
-        );
-    }
+    const hasLowOrEmptyStock = stats.produk_stok_menipis > 0 || stats.produk_stok_habis > 0;
 
     return (
-        <div className="space-y-4 p-2 sm:p-4">
-            {/* Header */}
-            <div className="flex justify-between items-center border-b pb-3 border-gray-200 dark:border-gray-800">
+        <div className="space-y-6 pb-8">
+            {/* Top Greeting & Date Banner */}
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-lg sm:text-xl font-bold tracking-tight text-gray-900 dark:text-white">Manajemen Barang</h1>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">Ringkasan inventaris real-time</p>
+                    <p className="text-xs sm:text-sm font-medium text-gray-500 dark:text-gray-400">
+                        {language === 'en' ? 'Welcome,' : 'Selamat datang,'}
+                    </p>
+                    <h1 className="text-2xl sm:text-3xl font-extrabold text-gray-900 dark:text-white tracking-tight flex items-center gap-2 mt-0.5">
+                        <span>{user?.name || 'Admin'}</span>
+                        <span className="inline-block">👋</span>
+                    </h1>
+                    <p className="text-xs sm:text-sm text-gray-400 dark:text-gray-500 mt-1">
+                        {language === 'en' 
+                            ? 'Here is today’s real-time inventory summary from the database.' 
+                            : 'Berikut ringkasan data inventaris barang Anda hari ini secara real-time dari database.'}
+                    </p>
                 </div>
-                <div className="flex items-center gap-2">
-                    <span className="text-xs font-mono text-gray-500 flex items-center gap-1">
-                        <Clock className="w-3.5 h-3.5" /> {lastUpdated ? timeFormatter.format(lastUpdated) : '-'}
-                    </span>
-                    <button 
-                        onClick={loadDashboardData} 
-                        className="p-1.5 text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-800 rounded transition-colors"
-                        title="Refresh"
-                    >
-                        <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-                    </button>
-                </div>
-            </div>
 
-            <StokAlert />
-
-            {/* Stat Cards */}
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-3">
-                {statCards.map((card, idx) => (
-                    <div 
-                        key={idx} 
-                        className={`bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700 ${card.border}`}
-                    >
-                        <div className="flex justify-between items-center">
-                            <span className="text-[11px] sm:text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wide">{card.title}</span>
-                            <card.icon className="w-4 h-4 text-gray-400" />
-                        </div>
-                        <div className="mt-1 flex items-baseline justify-between">
-                            <span className={`text-xl sm:text-2xl font-bold font-mono ${card.isDanger ? 'text-rose-600' : card.isWarning ? 'text-amber-600' : 'text-gray-900 dark:text-white'}`}>
-                                {card.value}
+                {/* Status Widgets: Auto-Refresh Indicator & Date/Time Widget */}
+                <div className="flex flex-wrap items-center gap-2.5">
+                    {/* Auto Refresh Status Pill */}
+                    {autoRefreshActive ? (
+                        <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all text-xs font-semibold ${
+                            darkMode 
+                                ? 'bg-emerald-950/40 border-emerald-800/60 text-emerald-400' 
+                                : 'bg-emerald-50/90 border-emerald-200 text-emerald-700 shadow-xs'
+                        }`}>
+                            <span className="relative flex h-2 w-2">
+                                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                                <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                             </span>
-                        </div>
-                    </div>
-                ))}
-            </div>
-
-            <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded p-3 sm:p-4">
-                <StokChart />
-            </div>
-
-            {/* Quick Actions & Activity Log */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-                {/* Actions */}
-                <div className="bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-4">
-                    <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 mb-3 flex items-center gap-2">
-                        <Box className="w-4 h-4 text-red-600" /> Aksi Cepat
-                    </h3>
-                    <div className="grid grid-cols-2 gap-2">
-                        {quickActions.map((action, idx) => (
-                            <Link
-                                key={idx}
-                                to={action.to}
-                                className="flex flex-col items-center justify-center p-3 rounded border border-gray-200 dark:border-gray-700 hover:border-red-500 hover:bg-red-50/50 dark:hover:bg-gray-700 transition-colors text-center"
+                            <span>{t('autoRefreshActiveBadge')} ({refreshInterval}m)</span>
+                            <span className="text-[11px] font-mono opacity-75 hidden sm:inline">
+                                • {lastUpdatedFormatted}
+                            </span>
+                            <button
+                                type="button"
+                                onClick={() => fetchAllDashboardData(true)}
+                                disabled={isRefreshing}
+                                title={t('refreshNowBtn')}
+                                className="p-1 hover:bg-emerald-200/50 dark:hover:bg-emerald-800/50 rounded-lg transition ml-0.5 cursor-pointer"
                             >
-                                <action.icon className="w-5 h-5 text-gray-700 dark:text-gray-300 mb-1" />
-                                <span className="text-xs font-medium text-gray-800 dark:text-gray-200">{action.label}</span>
-                            </Link>
-                        ))}
-                    </div>
-                </div>
-
-                {/* Log Aktivitas */}
-                <div className="lg:col-span-2 bg-white dark:bg-gray-800 rounded border border-gray-200 dark:border-gray-700 p-4">
-                    <div className="flex justify-between items-center mb-3">
-                        <h3 className="text-xs sm:text-sm font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300 flex items-center gap-2">
-                            <Clock className="w-4 h-4 text-red-600" /> Log Aktivitas Terakhir
-                        </h3>
-                        <Link to="/stok" className="text-xs font-semibold text-red-600 dark:text-red-400 hover:underline flex items-center gap-1">
-                            Lihat Semua <ArrowRight className="w-3 h-3" />
-                        </Link>
-                    </div>
-
-                    {activities.length === 0 ? (
-                        <div className="text-center py-6 text-xs text-gray-400">Belum ada aktivitas persediaan.</div>
+                                <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            </button>
+                        </div>
                     ) : (
-                        <div className="divide-y divide-gray-100 dark:divide-gray-700 max-h-[260px] overflow-y-auto">
-                            {activities.map((item) => (
-                                <div key={item.id} className="py-2 flex items-center justify-between text-xs">
-                                    <div className="flex items-center gap-2.5 min-w-0">
-                                        <span className={`p-1 rounded flex-shrink-0 ${item.tipe === 'masuk' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300'}`}>
-                                            {item.tipe === 'masuk' ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                        </span>
-                                        <div className="truncate">
-                                            <p className="font-semibold text-gray-800 dark:text-gray-200 truncate">{item.produk?.nama_produk || '-'}</p>
-                                            <p className="text-[11px] text-gray-400">
-                                                {item.batch ? `Batch #${item.batch.id}` : 'Reguler'} • {item.user?.name || 'Sistem'}
-                                            </p>
-                                        </div>
-                                    </div>
-                                    <div className="text-right flex-shrink-0 pl-2">
-                                        <span className={`font-mono font-bold ${item.tipe === 'masuk' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                            {item.tipe === 'masuk' ? '+' : '-'}{item.jumlah} pcs
-                                        </span>
-                                        <p className="text-[11px] text-gray-400">
-                                            {item.tanggal ? dateTimeFormatter.format(new Date(item.tanggal)) : '-'}
-                                        </p>
-                                    </div>
-                                </div>
-                            ))}
+                        <div className={`inline-flex items-center gap-2 px-3 py-2 rounded-2xl border transition-all text-xs font-medium ${
+                            darkMode 
+                                ? 'bg-gray-900/90 border-gray-800 text-gray-400' 
+                                : 'bg-gray-50 border-gray-200 text-gray-500 shadow-xs'
+                        }`}>
+                            <span className="w-2 h-2 rounded-full bg-gray-400"></span>
+                            <span>{t('autoRefreshOffBadge')}</span>
+                            <button
+                                type="button"
+                                onClick={() => fetchAllDashboardData(true)}
+                                disabled={isRefreshing}
+                                title={t('refreshNowBtn')}
+                                className="p-1 hover:bg-gray-200/60 dark:hover:bg-gray-700/60 rounded-lg transition ml-0.5 cursor-pointer"
+                            >
+                                <RotateCw className={`w-3.5 h-3.5 ${isRefreshing ? 'animate-spin' : ''}`} />
+                            </button>
                         </div>
                     )}
+
+                    {/* Date & Time Widget */}
+                    <div className={`flex items-center gap-3 px-4 py-2 rounded-2xl border transition-all ${
+                        darkMode 
+                            ? 'bg-gray-900/90 border-gray-800 text-gray-200' 
+                            : 'bg-white border-slate-100 shadow-xs text-gray-800'
+                    }`}>
+                        <div className="w-8 h-8 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400 flex items-center justify-center flex-shrink-0">
+                            <Calendar className="w-4 h-4" />
+                        </div>
+                        <div className="text-left">
+                            <div className="text-xs font-bold leading-tight">
+                                {dateFormatted}
+                            </div>
+                            <div className="text-[11px] text-gray-400 dark:text-gray-500 font-mono leading-tight mt-0.5">
+                                {timeFormatted}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
+
+            {/* Row 1: 4 Stat Cards Utama (100% Database Values & Symmetrical) */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-5">
+                {statCards.map((card, idx) => {
+                    const Icon = card.icon;
+                    return (
+                        <div
+                            key={idx}
+                            className={`p-4 rounded-2xl border transition-all duration-200 flex items-center gap-3.5 ${
+                                darkMode 
+                                    ? 'bg-gray-900 border-gray-800 hover:border-gray-700' 
+                                    : 'bg-white border-slate-100 shadow-xs hover:shadow-md'
+                            }`}
+                        >
+                            <div className={`w-12 h-12 rounded-full flex items-center justify-center flex-shrink-0 ${
+                                card.isDanger 
+                                    ? 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400' 
+                                    : 'bg-rose-50 dark:bg-rose-950/40 text-rose-600 dark:text-rose-400'
+                            }`}>
+                                <Icon className="w-6 h-6 stroke-[1.8]" />
+                            </div>
+
+                            <div className="min-w-0 flex-1">
+                                <p className="text-[11px] font-medium text-gray-400 dark:text-gray-500 truncate leading-tight">
+                                    {card.title}
+                                </p>
+                                <p className="text-lg sm:text-xl font-extrabold text-gray-900 dark:text-white tracking-tight leading-tight mt-1 truncate font-mono">
+                                    {card.value}
+                                </p>
+                                <div className="flex items-center gap-1 mt-1 text-[10px] sm:text-[11px] font-medium leading-tight">
+                                    <span className={card.isDanger ? 'text-rose-600 dark:text-rose-400 font-bold' : 'text-emerald-600 dark:text-emerald-400 font-bold'}>
+                                        {card.trendVal}
+                                    </span>
+                                    <span className="text-gray-400 dark:text-gray-500 font-normal truncate">
+                                        {card.desc}
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    );
+                })}
+            </div>
+
+            {/* Row 2: Middle Section (Stok per Kategori & Stok Menipis) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* Left: Stok per Kategori (Database) */}
+                <div className="lg:col-span-7">
+                    <StokKategoriChart chartData={kategoriData} darkMode={darkMode} />
+                </div>
+
+                {/* Right: Stok Menipis (Database) */}
+                <div className="lg:col-span-5">
+                    <StokMenipisTable products={lowStockProducts} darkMode={darkMode} showStock={showStockCount} />
+                </div>
+            </div>
+
+            {/* Row 3: Bottom Section (Stok Masuk/Keluar, Aktivitas Terbaru, Aksi Cepat) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+                {/* 1. Stok Masuk & Keluar (Database) */}
+                <StokMovementChart movementData={movementData} darkMode={darkMode} />
+
+                {/* 2. Aktivitas Terbaru (Database) */}
+                <AktivitasTerbaru activities={activities} darkMode={darkMode} />
+
+                {/* 3. Aksi Cepat */}
+                <AksiCepat darkMode={darkMode} />
+            </div>
+
+            {/* Row 4: Bottom Alert Notification Strip (100% Real Database Condition) */}
+            {hasLowOrEmptyStock ? (
+                <div className={`p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all ${
+                    darkMode 
+                        ? 'bg-rose-950/20 border-rose-900/40 text-rose-200' 
+                        : 'bg-[#fff4f4] border-rose-200/70 text-rose-950 shadow-xs'
+                }`}>
+                    <div className="flex items-center gap-3">
+                        <div className="w-6 h-6 rounded-full bg-rose-600 text-white flex items-center justify-center flex-shrink-0 font-bold text-xs shadow-xs">
+                            !
+                        </div>
+                        <p className="text-xs sm:text-sm font-medium leading-relaxed">
+                            Terdapat <span className="font-bold text-red-600 dark:text-red-400">{stats.produk_stok_menipis} produk</span> dengan stok menipis dan <span className="font-bold text-red-600 dark:text-red-400">{stats.produk_stok_habis} produk</span> yang stoknya habis di database. Segera lakukan pengecekan untuk menghindari kekosongan inventaris.
+                        </p>
+                    </div>
+
+                    <Link
+                        to="/stok"
+                        className="inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs sm:text-sm font-semibold transition-all duration-200 shadow-sm hover:shadow flex-shrink-0 cursor-pointer"
+                    >
+                        <span>Lihat Detail</span>
+                        <ArrowRight className="w-4 h-4" />
+                    </Link>
+                </div>
+            ) : (
+                <div className={`p-4 rounded-2xl border flex items-center gap-3 transition-all ${
+                    darkMode 
+                        ? 'bg-emerald-950/20 border-emerald-900/40 text-emerald-200' 
+                        : 'bg-[#f0fdf4] border-emerald-200/70 text-emerald-900 shadow-xs'
+                }`}>
+                    <CheckCircle2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                    <p className="text-xs sm:text-sm font-medium">
+                        Seluruh inventaris barang berada dalam kondisi optimal. Tidak ada produk dengan stok di bawah batas minimum.
+                    </p>
+                </div>
+            )}
         </div>
     );
 }

@@ -122,6 +122,33 @@ export default function StokBarangKeluar() {
                 return;
             }
 
+            // Point 2: Cek Preferensi Mode Konfirmasi Transaksi Stok (Safe Mode vs Quick Mode)
+            let isSafeMode = true;
+            try {
+                const prefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
+                if (prefs.confirm_transaction === false) {
+                    isSafeMode = false;
+                }
+            } catch (e) {}
+
+            if (isSafeMode) {
+                const confirmResult = await Swal.fire({
+                    title: 'Konfirmasi Stok Keluar',
+                    text: `Apakah Anda yakin ingin memproses mutasi stok keluar sebanyak ${formData.jumlah} unit dari batch "${selectedBatch?.nama_batch || selectedBatch?.nomor_batch || ''}"?`,
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonColor: '#b91c1c',
+                    cancelButtonColor: '#64748b',
+                    confirmButtonText: 'Ya, Proses Keluar',
+                    cancelButtonText: 'Batal',
+                });
+
+                if (!confirmResult.isConfirmed) {
+                    setLoading(false);
+                    return;
+                }
+            }
+
             const token = localStorage.getItem('token');
             const response = await fetch('/api/stok/keluar', {
                 method: 'POST',

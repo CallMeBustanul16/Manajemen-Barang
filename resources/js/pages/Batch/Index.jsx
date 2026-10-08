@@ -16,11 +16,71 @@ export default function BatchHome() {
     const [totalPages, setTotalPages] = useState(1);
     const [totalItems, setTotalItems] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
-    const perPage = 10;
+
+    // Dynamic settings preferences (Point 3 & Point 5)
+    const [perPage, setPerPage] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return parseInt(s.pagination_limit, 10) || 10;
+        } catch {
+            return 10;
+        }
+    });
+
+    const [expiryWarningDays, setExpiryWarningDays] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return parseInt(s.batch_expiry_warning_days, 10) || 30;
+        } catch {
+            return 30;
+        }
+    });
+
+    useEffect(() => {
+        const handleSettingsChange = (e) => {
+            if (e.detail?.pagination_limit) {
+                setPerPage(parseInt(e.detail.pagination_limit, 10) || 10);
+                setCurrentPage(1);
+            }
+            if (e.detail?.batch_expiry_warning_days) {
+                setExpiryWarningDays(parseInt(e.detail.batch_expiry_warning_days, 10) || 30);
+            }
+        };
+        window.addEventListener('app-settings-changed', handleSettingsChange);
+        return () => window.removeEventListener('app-settings-changed', handleSettingsChange);
+    }, []);
 
     useEffect(() => {
         fetchBatches();
-    }, [currentPage]);
+    }, [currentPage, perPage]);
+
+    const getExpiryStatus = useCallback((batch) => {
+        if (!batch.tanggal_kadaluarsa) return null;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const exp = new Date(batch.tanggal_kadaluarsa);
+        exp.setHours(0, 0, 0, 0);
+        const diffDays = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+
+        if (diffDays < 0) {
+            return {
+                status: 'expired',
+                label: `Kadaluarsa (${Math.abs(diffDays)}h lalu)`,
+                color: 'bg-red-100 text-red-700 dark:bg-red-950/60 dark:text-red-400 border border-red-200 dark:border-red-900',
+            };
+        } else if (diffDays <= expiryWarningDays) {
+            return {
+                status: 'warning',
+                label: `Exp: H-${diffDays}`,
+                color: 'bg-amber-100 text-amber-800 dark:bg-amber-950/60 dark:text-amber-400 border border-amber-200 dark:border-amber-900',
+            };
+        }
+        return {
+            status: 'safe',
+            label: `Aman (H+${diffDays})`,
+            color: 'bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-900/50',
+        };
+    }, [expiryWarningDays]);
 
     const fetchBatches = useCallback(async () => {
         setLoading(true);
@@ -358,6 +418,7 @@ export default function BatchHome() {
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                     {paginatedData.map((item, index) => {
                                         const status = getBatchStatus(item);
+                                        const expStatus = getExpiryStatus(item);
                                         const StatusIcon = status.icon;
                                         return (
                                             <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
@@ -368,8 +429,15 @@ export default function BatchHome() {
                                                     <div className="font-medium text-gray-900 dark:text-white">
                                                         {item.produk?.nama_produk || '-'}
                                                     </div>
-                                                    <div className="text-xs text-gray-500 dark:text-gray-400">
-                                                        Batch #{item.id}
+                                                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                                        <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                            Batch #{item.id}
+                                                        </span>
+                                                        {expStatus && (
+                                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${expStatus.color}`}>
+                                                                {expStatus.label}
+                                                            </span>
+                                                        )}
                                                     </div>
                                                 </td>
                                                 <td className="px-4 py-3 text-center">
