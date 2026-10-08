@@ -226,12 +226,12 @@ export default function Dashboard() {
         return `${h}:${m}:${s}`;
     }, [lastUpdated]);
 
-    // Format number by user preferences (Point 5 & 6)
+    // Format number by locale
     const formatNumberBySetting = useCallback((num) => {
         if (num === null || typeof num === 'undefined') return '0';
-        const locale = numberFormat === 'en' ? 'en-US' : 'id-ID';
+        const locale = language === 'en' ? 'en-US' : 'id-ID';
         return Number(num).toLocaleString(locale);
-    }, [numberFormat]);
+    }, [language]);
 
     // 4 Stat Cards Utama terhubung 100% dengan database
     const statCards = [
