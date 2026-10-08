@@ -4,19 +4,30 @@ import {
     TrendingUp, TrendingDown, Package, ArrowUp, ArrowDown, Filter, RotateCcw
 } from 'lucide-react';
 import Swal from 'sweetalert2';
-
-// Standardized Date Formatter di luar render loop (Hemat CPU/Memori)
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-});
-const shortDateFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit', month: 'short', year: 'numeric'
-});
+import { formatDateByPreference } from '../../lib/formatters';
 
 export default function HomeLaporan() {
     const [transactions, setTransactions] = useState([]);
     const [loading, setLoading] = useState(true);
     const [refreshing, setRefreshing] = useState(false);
+    const [dateFormat, setDateFormat] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return s.date_format || 'DD/MM/YYYY';
+        } catch {
+            return 'DD/MM/YYYY';
+        }
+    });
+
+    useEffect(() => {
+        const handleSettingsChange = (e) => {
+            if (e.detail?.date_format) {
+                setDateFormat(e.detail.date_format);
+            }
+        };
+        window.addEventListener('app-settings-changed', handleSettingsChange);
+        return () => window.removeEventListener('app-settings-changed', handleSettingsChange);
+    }, []);
 
     // State Filter
     const [startDate, setStartDate] = useState('');
@@ -328,7 +339,7 @@ export default function HomeLaporan() {
                                                 <td className="px-4 py-3 text-gray-500">{item.batch ? `Batch #${item.batch.id}` : '-'}</td>
                                                 <td className="px-4 py-3 text-gray-500">{item.user?.name || '-'}</td>
                                                 <td className="px-4 py-3 text-gray-400">
-                                                    {item.tanggal ? dateTimeFormatter.format(new Date(item.tanggal)) : '-'}
+                                                    {item.tanggal ? formatDateByPreference(item.tanggal, dateFormat, true) : '-'}
                                                 </td>
                                             </tr>
                                         );
@@ -354,7 +365,7 @@ export default function HomeLaporan() {
                                         </div>
                                         <div className="flex justify-between items-center text-[10px] text-gray-400 pt-1 border-t border-gray-100 dark:border-gray-700/50">
                                             <span>{item.user?.name || 'Sistem'} • {item.batch ? `Batch #${item.batch.id}` : 'Reguler'}</span>
-                                            <span>{item.tanggal ? dateTimeFormatter.format(new Date(item.tanggal)) : '-'}</span>
+                                            <span>{item.tanggal ? formatDateByPreference(item.tanggal, dateFormat, true) : '-'}</span>
                                         </div>
                                     </div>
                                 );

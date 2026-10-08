@@ -2,8 +2,10 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     Sliders, Bell, Shield, Info, Monitor, Sun, Moon, Globe, 
     RotateCw, Eye, Check, Clock, Laptop, ShieldCheck, AlertTriangle,
-    Camera, Volume2, Boxes, Rows, CalendarClock, ArrowUpDown
+    Camera, Volume2, Boxes, Rows, CalendarClock, ArrowUpDown,
+    Database, Printer, Download, Layers
 } from 'lucide-react';
+import Swal from 'sweetalert2';
 import { gunakanDarkMode } from '../../context/DarkModeContext';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -24,6 +26,12 @@ export default function SettingsPage() {
         pagination_limit: '10', // Point 5: 10, 25, 50, 100 rows
         table_density: 'comfortable', // 'comfortable' | 'compact'
         default_sort: 'newest', // 'newest' | 'lowest_stock' | 'highest_stock' | 'name_asc'
+        date_format: 'DD/MM/YYYY', // Point 4: DD/MM/YYYY, YYYY-MM-DD, DD MMMM YYYY
+        // Gudang Lanjutan & Inventaris (Point 1, 3, 5)
+        default_min_stock: '5', // Point 3: 5, 10, 20, 50
+        qr_label_size: 'medium', // Point 1: small, medium, standard
+        qr_show_product_info: true, // Point 1
+        fifo_enforcement: true, // Point 5: FIFO recommendations
         // Scanner & Kamera (Point 2)
         scanner_sound: true,
         scanner_camera: 'environment', // 'environment' | 'user'
@@ -40,10 +48,79 @@ export default function SettingsPage() {
         // Keamanan
         session_timeout: '120',
         two_factor: false,
+        app_version: '2.5.2',
     });
 
+    const [backupLoading, setBackupLoading] = useState(false);
+    const [cacheLoading, setCacheLoading] = useState(false);
     const [savedNotice, setSavedNotice] = useState(false);
     const saveNoticeTimeoutRef = useRef(null);
+
+    const handleDownloadBackup = async () => {
+        setBackupLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/settings/backup', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+            if (!res.ok) throw new Error('Gagal mengunduh cadangan data');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-gudang-${new Date().toISOString().slice(0, 10)}.json`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            Swal.fire({
+                title: 'Berhasil!',
+                text: t('backupSuccess'),
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            console.error('Backup error:', err);
+            Swal.fire('Error', 'Gagal mengunduh cadangan data.', 'error');
+        } finally {
+            setBackupLoading(false);
+        }
+    };
+
+    const handleClearCache = async () => {
+        setCacheLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/settings/clear-cache', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Accept': 'application/json'
+                }
+            });
+            const data = await res.json();
+            if (data.success) {
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: t('cacheCleared'),
+                    icon: 'success',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+            } else {
+                throw new Error(data.message || 'Gagal');
+            }
+        } catch (err) {
+            console.error('Clear cache error:', err);
+            Swal.fire('Error', 'Gagal membersihkan cache aplikasi.', 'error');
+        } finally {
+            setCacheLoading(false);
+        }
+    };
 
     const triggerAutoSaveFeedback = () => {
         setSavedNotice(true);
@@ -273,7 +350,7 @@ export default function SettingsPage() {
                         </div>
                     </button>
 
-                    {/* Item 3: Keamanan */}
+                    {/* Item: Keamanan */}
                     <button
                         type="button"
                         onClick={() => setActiveTab('keamanan')}
@@ -296,7 +373,30 @@ export default function SettingsPage() {
                         </div>
                     </button>
 
-                    {/* Item 4: Tentang Sistem */}
+                    {/* Item: Manajemen Data & Cadangan (Point 2) */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('data')}
+                        className={`w-full text-left p-3.5 rounded-xl transition-all cursor-pointer flex items-start gap-3.5 ${
+                            activeTab === 'data'
+                                ? 'bg-rose-50/80 dark:bg-rose-950/40 text-red-700 dark:text-red-400 border border-rose-100 dark:border-rose-900/40'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+                        }`}
+                    >
+                        <div className={`p-2 rounded-lg mt-0.5 ${
+                            activeTab === 'data' 
+                                ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300' 
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                        }`}>
+                            <Database className="w-4 h-4" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold leading-tight">{t('tabDataManagement')}</p>
+                            <p className="text-[11px] text-gray-400 mt-1 leading-snug">{t('tabDataManagementSub')}</p>
+                        </div>
+                    </button>
+
+                    {/* Item: Tentang Sistem */}
                     <button
                         type="button"
                         onClick={() => setActiveTab('tentang')}
@@ -603,7 +703,7 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-2">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2">
                                     {/* Pagination Limit */}
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
@@ -650,6 +750,22 @@ export default function SettingsPage() {
                                             <option value="lowest_stock">{t('sortLowestStock')}</option>
                                             <option value="highest_stock">{t('sortHighestStock')}</option>
                                             <option value="name_asc">{t('sortNameAsc')}</option>
+                                        </select>
+                                    </div>
+
+                                    {/* Format Tanggal Transaksi (Point 4) */}
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            {t('dateFormat')}
+                                        </label>
+                                        <select
+                                            value={settings.date_format || 'DD/MM/YYYY'}
+                                            onChange={(e) => handleUpdateSetting('date_format', e.target.value)}
+                                            className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition cursor-pointer"
+                                        >
+                                            <option value="DD/MM/YYYY">{t('dateFormatId')}</option>
+                                            <option value="YYYY-MM-DD">{t('dateFormatIso')}</option>
+                                            <option value="DD MMMM YYYY">{t('dateFormatLong')}</option>
                                         </select>
                                     </div>
                                 </div>
@@ -804,7 +920,7 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
 
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 pt-1">
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
                                             {t('skuPrefix')}
@@ -836,6 +952,120 @@ export default function SettingsPage() {
                                             className="w-full px-3.5 py-2 rounded-xl text-xs font-mono bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
                                         />
                                     </div>
+
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1">
+                                            {t('defaultMinStock')}
+                                        </label>
+                                        <p className="text-[11px] text-gray-400 mb-2">
+                                            {t('defaultMinStockDesc')}
+                                        </p>
+                                        <select
+                                            value={settings.default_min_stock || '5'}
+                                            onChange={(e) => handleUpdateSetting('default_min_stock', e.target.value)}
+                                            className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition cursor-pointer"
+                                        >
+                                            <option value="5">{t('minStock5')}</option>
+                                            <option value="10">{t('minStock10')}</option>
+                                            <option value="20">{t('minStock20')}</option>
+                                            <option value="50">{t('minStock50')}</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section: Preferensi Cetak Label QR Kardus & Rak (Point 1) */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-4">
+                                <div className="flex items-start gap-3.5">
+                                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-300">
+                                        <Printer className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                                            {t('qrPrintSettings')}
+                                        </h3>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            {t('qrPrintDesc')}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-1">
+                                    <div>
+                                        <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            {t('qrLabelSize')}
+                                        </label>
+                                        <select
+                                            value={settings.qr_label_size || 'medium'}
+                                            onChange={(e) => handleUpdateSetting('qr_label_size', e.target.value)}
+                                            className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition cursor-pointer"
+                                        >
+                                            <option value="small">{t('sizeSmall')}</option>
+                                            <option value="medium">{t('sizeMedium')}</option>
+                                            <option value="standard">{t('sizeStandard')}</option>
+                                        </select>
+                                    </div>
+
+                                    <div className="flex items-center justify-between p-3.5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200/70 dark:border-gray-700 self-end">
+                                        <div>
+                                            <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                {t('qrShowInfo')}
+                                            </p>
+                                            <p className="text-[11px] text-gray-400 mt-0.5">
+                                                {t('qrShowInfoDesc')}
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => handleToggle('qr_show_product_info')}
+                                            className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                                                settings.qr_show_product_info ? 'bg-red-600' : 'bg-gray-300 dark:bg-gray-700'
+                                            }`}
+                                        >
+                                            <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                                                settings.qr_show_product_info ? 'translate-x-5' : 'translate-x-0'
+                                            }`} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            {/* Section: Kebijakan Pengeluaran Barang (FIFO) (Point 5) */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-4">
+                                <div className="flex items-start gap-3.5">
+                                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-300">
+                                        <Layers className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                                            {t('fifoPolicy')}
+                                        </h3>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            {t('fifoPolicyDesc')}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200/70 dark:border-gray-700">
+                                    <div>
+                                        <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                            {t('fifoEnforce')}
+                                        </p>
+                                        <p className="text-[11px] text-gray-400 mt-0.5">
+                                            {t('fifoEnforceDesc')}
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={() => handleToggle('fifo_enforcement')}
+                                        className={`w-11 h-6 flex items-center rounded-full p-1 transition-colors cursor-pointer ${
+                                            settings.fifo_enforcement ? 'bg-red-600' : 'bg-gray-300 dark:bg-gray-700'
+                                        }`}
+                                    >
+                                        <div className={`bg-white w-4 h-4 rounded-full shadow-md transform transition-transform ${
+                                            settings.fifo_enforcement ? 'translate-x-5' : 'translate-x-0'
+                                        }`} />
+                                    </button>
                                 </div>
                             </div>
 
@@ -997,6 +1227,91 @@ export default function SettingsPage() {
                         </div>
                     )}
 
+                    {/* TAB: MANAJEMEN DATA & CADANGAN (Point 2) */}
+                    {activeTab === 'data' && (
+                        <div className="space-y-6">
+                            {/* Card Backup */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-5">
+                                <div className="flex items-start gap-3.5">
+                                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-300">
+                                        <Database className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                                            {t('backupTitle')}
+                                        </h3>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            {t('backupDesc')}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200/70 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                            Ekspor Snapshot Data Gudang
+                                        </p>
+                                        <p className="text-[11px] text-gray-400">
+                                            Menghasilkan file arsip .json berisi seluruh data produk, batch, stok, kategori, dan pemasok.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleDownloadBackup}
+                                        disabled={backupLoading}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-md shadow-red-600/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                                    >
+                                        <Download className={`w-4 h-4 ${backupLoading ? 'animate-bounce' : ''}`} />
+                                        <span>{backupLoading ? 'Mengunduh...' : t('downloadBackupBtn')}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Card Clear Cache */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-5">
+                                <div className="flex items-start gap-3.5">
+                                    <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-300">
+                                        <RotateCw className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                    </div>
+                                    <div>
+                                        <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                                            {t('clearCacheTitle')}
+                                        </h3>
+                                        <p className="text-xs text-gray-400 mt-0.5">
+                                            {t('clearCacheDesc')}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200/70 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                                    <div className="space-y-1">
+                                        <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                            Reset Cache Server & Query
+                                        </p>
+                                        <p className="text-[11px] text-gray-400">
+                                            Menghapus query cache server Laravel dan memperbarui status aplikasi.
+                                        </p>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleClearCache}
+                                        disabled={cacheLoading}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 text-xs font-semibold rounded-xl border border-gray-200 dark:border-gray-600 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                                    >
+                                        <RotateCw className={`w-4 h-4 ${cacheLoading ? 'animate-spin' : ''}`} />
+                                        <span>{cacheLoading ? 'Membersihkan...' : t('clearCacheBtn')}</span>
+                                    </button>
+                                </div>
+                            </div>
+
+                            {/* Auto-save footer note */}
+                            <div className="flex items-center justify-end gap-1.5 pt-1 text-[11px] text-gray-400 dark:text-gray-500">
+                                <Check className="w-3.5 h-3.5 text-emerald-500" />
+                                <span>{t('autoSavedNote')}</span>
+                            </div>
+                        </div>
+                    )}
+
                     {/* TAB: TENTANG SISTEM */}
                     {activeTab === 'tentang' && (
                         <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-6">
@@ -1021,7 +1336,7 @@ export default function SettingsPage() {
                                 </div>
                                 <div className="py-3 flex justify-between">
                                     <span className="text-gray-500 dark:text-gray-400">{t('appVersionField')}</span>
-                                    <span className="font-mono font-bold text-red-600 dark:text-red-400">v2.4.0 (Stable)</span>
+                                    <span className="font-mono font-bold text-red-600 dark:text-red-400">v{settings.app_version || '2.5.1'} (Stable)</span>
                                 </div>
                                 <div className="py-3 flex justify-between">
                                     <span className="text-gray-500 dark:text-gray-400">{t('backendEngineField')}</span>

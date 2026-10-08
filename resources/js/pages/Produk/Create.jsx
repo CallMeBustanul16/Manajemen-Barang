@@ -52,18 +52,18 @@ export default function BuatProduk() {
         };
     }, []);
 
-    // Standardisasi Kode & Prefix SKU Gudang (Point 4)
+    // Standardisasi Kode Prefix SKU & Default Stok Minimal (Point 3 & 4)
     useEffect(() => {
         try {
             const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const prefix = settings.sku_prefix || 'PRD-';
+            const defaultMinStock = settings.default_min_stock || '5';
             const randomCode = Math.floor(1000 + Math.random() * 9000);
-            setFormData(prev => {
-                if (!prev.sku) {
-                    return { ...prev, sku: `${prefix}${randomCode}` };
-                }
-                return prev;
-            });
+            setFormData(prev => ({
+                ...prev,
+                stok_minimal: defaultMinStock,
+                sku: prev.sku || `${prefix}${randomCode}`
+            }));
         } catch (e) {}
     }, []);
 

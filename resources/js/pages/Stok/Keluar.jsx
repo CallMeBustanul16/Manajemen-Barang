@@ -1,6 +1,6 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Package, User, Box, Calendar, AlertCircle, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, Save, Package, User, Box, Calendar, AlertCircle, AlertTriangle, Info, CheckCircle2 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { produkAPI } from '../../lib/api';
 
@@ -19,6 +19,17 @@ export default function StokBarangKeluar() {
     const [selectedProduct, setSelectedProduct] = useState(null);
     const [batchList, setBatchList] = useState([]);
     const [selectedBatch, setSelectedBatch] = useState(null);
+    const [fifoPolicyEnabled, setFifoPolicyEnabled] = useState(true);
+
+    // Muat preferensi kebijakan FIFO dari Settings
+    useEffect(() => {
+        try {
+            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            if (typeof settings.fifo_enforcement === 'boolean') {
+                setFifoPolicyEnabled(settings.fifo_enforcement);
+            }
+        } catch (e) {}
+    }, []);
 
     useEffect(() => {
         fetchProduk();
@@ -32,6 +43,44 @@ export default function StokBarangKeluar() {
             setSelectedBatch(null);
         }
     }, [formData.produk_id]);
+
+    // Filter & Urutkan Batch Berdasarkan Kebijakan FIFO
+    const availableBatches = useMemo(() => {
+        const filtered = batchList.filter(b => b.stok_saat_ini > 0);
+        if (!fifoPolicyEnabled) return filtered;
+
+        // Sorting FIFO / FEFO:
+        // 1. Tanggal kadaluarsa terawal (FEFO) jika ada
+        // 2. Tanggal masuk terawal (FIFO)
+        // 3. ID terawal (masuk pertama)
+        return [...filtered].sort((a, b) => {
+            if (a.tanggal_kadaluarsa && b.tanggal_kadaluarsa) {
+                const diffExp = new Date(a.tanggal_kadaluarsa) - new Date(b.tanggal_kadaluarsa);
+                if (diffExp !== 0) return diffExp;
+            } else if (a.tanggal_kadaluarsa && !b.tanggal_kadaluarsa) {
+                return -1;
+            } else if (!a.tanggal_kadaluarsa && b.tanggal_kadaluarsa) {
+                return 1;
+            }
+
+            if (a.tanggal_masuk && b.tanggal_masuk) {
+                const diffMasuk = new Date(a.tanggal_masuk) - new Date(b.tanggal_masuk);
+                if (diffMasuk !== 0) return diffMasuk;
+            }
+            return a.id - b.id;
+        });
+    }, [batchList, fifoPolicyEnabled]);
+
+    const recommendedFifoBatch = useMemo(() => {
+        return (fifoPolicyEnabled && availableBatches.length > 0) ? availableBatches[0] : null;
+    }, [fifoPolicyEnabled, availableBatches]);
+
+    // Auto-select batch rekomendasi FIFO saat batch dimuat jika belum memilih
+    useEffect(() => {
+        if (fifoPolicyEnabled && recommendedFifoBatch && !formData.batch_id) {
+            setFormData(prev => ({ ...prev, batch_id: String(recommendedFifoBatch.id) }));
+        }
+    }, [recommendedFifoBatch, fifoPolicyEnabled]);
 
     useEffect(() => {
         if (formData.batch_id && batchList.length > 0) {
@@ -132,9 +181,17 @@ export default function StokBarangKeluar() {
             } catch (e) {}
 
             if (isSafeMode) {
+                let fifoWarningHtml = '';
+                if (fifoPolicyEnabled && recommendedFifoBatch && selectedBatch.id !== recommendedFifoBatch.id) {
+                    fifoWarningHtml = `<p class="mt-2 text-xs text-amber-600 bg-amber-50 p-2 rounded border border-amber-200 text-left"><strong>Catatan Kebijakan FIFO:</strong> Anda tidak memilih Batch #${recommendedFifoBatch.id} (rekomendasi prioritas stok lama). Mutasi tetap akan diproses dari Batch #${selectedBatch.id}.</p>`;
+                }
+
                 const confirmResult = await Swal.fire({
                     title: 'Konfirmasi Stok Keluar',
-                    text: `Apakah Anda yakin ingin memproses mutasi stok keluar sebanyak ${formData.jumlah} unit dari batch "${selectedBatch?.nama_batch || selectedBatch?.nomor_batch || ''}"?`,
+                    html: `
+                        <p>Apakah Anda yakin ingin memproses mutasi stok keluar sebanyak <strong>${formData.jumlah} unit</strong> dari <strong>Batch #${selectedBatch?.id}</strong>?</p>
+                        ${fifoWarningHtml}
+                    `,
                     icon: 'warning',
                     showCancelButton: true,
                     confirmButtonColor: '#b91c1c',
@@ -242,9 +299,16 @@ export default function StokBarangKeluar() {
                     {/* Info Batch Terpilih */}
                     {formData.produk_id && (
                         <div>
-                            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-                                Pilih Batch <span className="text-red-500">*</span>
-                            </label>
+                            <div className="flex items-center justify-between mb-1">
+                                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                                    Pilih Batch <span className="text-red-500">*</span>
+                                </label>
+                                {fifoPolicyEnabled && (
+                                    <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-950/40 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">
+                                        ⚡ Kebijakan FIFO Aktif
+                                    </span>
+                                )}
+                            </div>
                             <div className="relative">
                                 <Box className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
                                 <select
@@ -255,14 +319,66 @@ export default function StokBarangKeluar() {
                                     required
                                 >
                                     <option value="">Pilih batch...</option>
-                                    {batchList.filter(b => b.stok_saat_ini > 0).map((batch) => (
-                                        <option key={batch.id} value={batch.id}>
-                                            Batch #{batch.id} — {batch.stok_saat_ini}/{batch.kapasitas}
-                                            {batch.lokasi_rak ? ` • ${batch.lokasi_rak}` : ''}
-                                        </option>
-                                    ))}
+                                    {availableBatches.map((batch) => {
+                                        const isFifo = fifoPolicyEnabled && recommendedFifoBatch && batch.id === recommendedFifoBatch.id;
+                                        return (
+                                            <option key={batch.id} value={batch.id}>
+                                                {isFifo ? '⭐ [Rekomendasi FIFO] ' : ''}Batch #{batch.id} — Stok: {batch.stok_saat_ini}/{batch.kapasitas}
+                                                {batch.tanggal_kadaluarsa ? ` • Exp: ${batch.tanggal_kadaluarsa}` : (batch.tanggal_masuk ? ` • Masuk: ${batch.tanggal_masuk}` : '')}
+                                                {batch.lokasi_rak ? ` • Rak: ${batch.lokasi_rak}` : ''}
+                                            </option>
+                                        );
+                                    })}
                                 </select>
                             </div>
+
+                            {/* FIFO Callout Badge & Notification */}
+                            {fifoPolicyEnabled && selectedBatch && recommendedFifoBatch && (
+                                <>
+                                    {selectedBatch.id === recommendedFifoBatch.id ? (
+                                        <div className="mt-2.5 p-2.5 bg-emerald-50 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800 rounded-lg flex items-center gap-2 text-xs text-emerald-800 dark:text-emerald-300">
+                                            <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 flex-shrink-0" />
+                                            <span>
+                                                <strong>Sesuai Rekomendasi FIFO:</strong> Batch #{selectedBatch.id} adalah batch tertua/prioritas pengeluaran pertama.
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <div className="mt-2.5 p-2.5 bg-amber-50 dark:bg-amber-950/40 border border-amber-300 dark:border-amber-700/60 rounded-lg flex items-start gap-2 text-xs text-amber-800 dark:text-amber-200">
+                                            <AlertTriangle className="w-4 h-4 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                                            <div>
+                                                <p className="font-semibold mb-0.5">Peringatan Deviasi Kebijakan FIFO</p>
+                                                <p>
+                                                    Anda memilih Batch #{selectedBatch.id}. Sistem merekomendasikan <strong>Batch #{recommendedFifoBatch.id}</strong> ({recommendedFifoBatch.tanggal_kadaluarsa ? `Kadaluarsa: ${recommendedFifoBatch.tanggal_kadaluarsa}` : `Masuk: ${recommendedFifoBatch.tanggal_masuk || '-'}`}) untuk mencegah barang lama kedaluwarsa di gudang.
+                                                </p>
+                                            </div>
+                                        </div>
+                                    )}
+                                </>
+                            )}
+
+                            {/* Batch Detail Specs Card */}
+                            {selectedBatch && (
+                                <div className="mt-3 p-3 bg-gray-50 dark:bg-gray-800/80 border border-gray-200 dark:border-gray-700 rounded-lg grid grid-cols-2 sm:grid-cols-4 gap-2.5 text-xs">
+                                    <div>
+                                        <span className="text-gray-400 block text-[10px] uppercase font-semibold">Stok Batch</span>
+                                        <span className="font-bold text-gray-900 dark:text-white text-sm">{selectedBatch.stok_saat_ini} <span className="text-xs font-normal text-gray-500">/ {selectedBatch.kapasitas}</span></span>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 block text-[10px] uppercase font-semibold">Lokasi Rak</span>
+                                        <span className="font-medium text-gray-800 dark:text-gray-200">{selectedBatch.lokasi_rak || '-'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 block text-[10px] uppercase font-semibold">Tgl Masuk</span>
+                                        <span className="font-medium text-gray-800 dark:text-gray-200">{selectedBatch.tanggal_masuk || '-'}</span>
+                                    </div>
+                                    <div>
+                                        <span className="text-gray-400 block text-[10px] uppercase font-semibold">Kadaluarsa</span>
+                                        <span className={`font-medium ${selectedBatch.tanggal_kadaluarsa ? 'text-rose-600 dark:text-rose-400 font-semibold' : 'text-gray-500'}`}>
+                                            {selectedBatch.tanggal_kadaluarsa || 'Tidak Ada'}
+                                        </span>
+                                    </div>
+                                </div>
+                            )}
                         </div>
                     )}
 

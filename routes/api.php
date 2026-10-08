@@ -553,6 +553,11 @@ Route::get('/settings', function () {
         'pagination_limit' => '10',
         'table_density' => 'comfortable',
         'default_sort' => 'newest',
+        'date_format' => 'DD/MM/YYYY',
+        'default_min_stock' => '5',
+        'qr_label_size' => 'medium',
+        'qr_show_product_info' => true,
+        'fifo_enforcement' => true,
         'scanner_sound' => true,
         'scanner_camera' => 'environment',
         'scanner_auto_submit' => true,
@@ -564,7 +569,7 @@ Route::get('/settings', function () {
         'notif_sound' => true,
         'session_timeout' => '120',
         'two_factor' => false,
-        'app_version' => '2.5.1',
+        'app_version' => '2.5.2',
     ];
     $settings = array_merge($defaults, \Illuminate\Support\Facades\Cache::get('app_settings', []));
 
@@ -585,5 +590,43 @@ Route::post('/settings', function (Request $request) {
         'success' => true,
         'message' => 'Pengaturan berhasil disimpan',
         'data' => $updated
+    ]);
+});
+
+// Route Backup Database & Inventaris (JSON Snapshot)
+Route::get('/settings/backup', function () {
+    $data = [
+        'exported_at' => now()->toIso8601String(),
+        'app_version' => '2.5.2',
+        'system' => 'Manajemen Gudang & Inventaris',
+        'counts' => [
+            'produk' => \App\Models\Produk::count(),
+            'kategori' => \App\Models\Kategori::count(),
+            'pemasok' => \App\Models\Pemasok::count(),
+            'batch' => \App\Models\Batch::count(),
+            'transaksi' => \App\Models\StokTransaksi::count(),
+        ],
+        'data' => [
+            'kategori' => \App\Models\Kategori::all(),
+            'pemasok' => \App\Models\Pemasok::all(),
+            'produk' => \App\Models\Produk::with(['kategori', 'pemasok'])->get(),
+            'batch' => \App\Models\Batch::with('produk')->get(),
+            'transaksi' => \App\Models\StokTransaksi::latest()->take(500)->get(),
+        ]
+    ];
+
+    $filename = 'backup-gudang-' . date('Y-m-d-His') . '.json';
+    return response()->json($data, 200, [
+        'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        'Content-Type' => 'application/json'
+    ]);
+});
+
+// Route Pembersihan Cache Sistem
+Route::post('/settings/clear-cache', function () {
+    \Illuminate\Support\Facades\Cache::flush();
+    return response()->json([
+        'success' => true,
+        'message' => 'Cache server dan query aplikasi berhasil dibersihkan.'
     ]);
 });

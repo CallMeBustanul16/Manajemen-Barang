@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
     Plus, Edit, Trash2, 
     Search, ChevronLeft, ChevronRight, 
-    QrCode, Download, X, Eye
+    QrCode, Download, X, Eye, Printer
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { produkAPI } from '../../lib/api';
@@ -224,6 +224,90 @@ export default function ProdukHome() {
             }
         } catch (error) {
             Swal.fire('Error', 'Gagal download QR', 'error');
+        }
+    };
+
+    // Preferensi Cetak Label QR Kardus & Rak (Point 1)
+    const handlePrintQrLabel = () => {
+        if (!qrModalImage || !qrModalProduk) return;
+        try {
+            const settings = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            const labelSize = settings.qr_label_size || 'medium';
+            const showInfo = settings.qr_show_product_info !== false;
+
+            const sizeDimensions = {
+                small: { w: '30mm', h: '20mm', img: '14mm', font: '8px' },
+                medium: { w: '50mm', h: '30mm', img: '22mm', font: '10px' },
+                standard: { w: '70mm', h: '50mm', img: '35mm', font: '12px' },
+            }[labelSize] || { w: '50mm', h: '30mm', img: '22mm', font: '10px' };
+
+            const printWindow = window.open('', '_blank', 'width=500,height=500');
+            if (!printWindow) {
+                window.print();
+                return;
+            }
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Label QR - ${qrModalProduk.nama_produk}</title>
+                    <style>
+                        @page {
+                            size: ${sizeDimensions.w} ${sizeDimensions.h};
+                            margin: 0;
+                        }
+                        body {
+                            margin: 0;
+                            padding: 2mm;
+                            font-family: system-ui, -apple-system, sans-serif;
+                            display: flex;
+                            flex-direction: column;
+                            align-items: center;
+                            justify-content: center;
+                            height: 100vh;
+                            box-sizing: border-box;
+                            text-align: center;
+                        }
+                        img {
+                            width: ${sizeDimensions.img};
+                            height: ${sizeDimensions.img};
+                            object-fit: contain;
+                        }
+                        .name {
+                            font-size: ${sizeDimensions.font};
+                            font-weight: bold;
+                            margin-top: 1mm;
+                            white-space: nowrap;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+                            max-width: 95%;
+                        }
+                        .sku {
+                            font-size: calc(${sizeDimensions.font} - 2px);
+                            color: #444;
+                            font-family: monospace;
+                        }
+                    </style>
+                </head>
+                <body>
+                    <img src="${qrModalImage}" alt="QR" />
+                    ${showInfo ? `
+                        <div class="name">${qrModalProduk.nama_produk}</div>
+                        <div class="sku">SKU: ${qrModalProduk.sku || '-'}</div>
+                    ` : ''}
+                    <script>
+                        window.onload = function() {
+                            window.print();
+                            window.onafterprint = function() { window.close(); };
+                        };
+                    </script>
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+        } catch (e) {
+            console.error('Print label error:', e);
+            window.print();
         }
     };
 
@@ -449,17 +533,25 @@ export default function ProdukHome() {
                         </div>
 
                         {/* Action Buttons */}
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                onClick={handlePrintQrLabel}
+                                className="flex-1 py-2.5 px-3 bg-gray-900 hover:bg-black dark:bg-gray-700 dark:hover:bg-gray-600 active:scale-[0.98] text-white text-xs font-semibold rounded-xl transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                title="Cetak Label QR (Ukuran disesuaikan di menu Pengaturan)"
+                            >
+                                <Printer className="w-4 h-4" />
+                                <span>Cetak Label</span>
+                            </button>
                             <button
                                 onClick={() => handleDownloadProdukQr(qrModalProduk.id)}
-                                className="flex-1 py-2.5 px-4 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-red-600/20 flex items-center justify-center gap-2"
+                                className="flex-1 py-2.5 px-3 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl transition-all shadow-md shadow-red-600/20 flex items-center justify-center gap-1.5 cursor-pointer"
                             >
                                 <Download className="w-4 h-4" />
-                                Unduh QR Code
+                                <span>Unduh PNG</span>
                             </button>
                             <button
                                 onClick={handleCloseQrModal}
-                                className="py-2.5 px-4 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-xl transition-colors"
+                                className="py-2.5 px-3.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-200 text-xs font-semibold rounded-xl transition-colors cursor-pointer"
                             >
                                 Tutup
                             </button>

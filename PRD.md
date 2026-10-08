@@ -1,7 +1,7 @@
 # PRD — Sistem Manajemen Barang (Inventory Management System)
 
 > **Dokumen**: Product Requirements Document (PRD)  
-> **Versi**: 2.5.0  
+> **Versi**: 2.5.2  
 > **Terakhir Diperbarui**: Oktober 2026  
 > **Status**: Live / Production-ready  
 > **Repository**: [CallMeBustanul16/Manajemen-Barang](https://github.com/CallMeBustanul16/Manajemen-Barang)  
@@ -192,6 +192,30 @@ Menu kustomisasi lengkap yang menerapkan prinsip modern **Auto-Save on Change (T
    - **Urutan Default Data Tabel (Default Sort Order)**: Pilihan urutan data produk otomatis (*Terbaru Ditambahkan*, *Stok Menipis Dahulu / Prioritas Restock*, *Stok Terbanyak Dahulu*, dan *Nama Produk A-Z*) secara reaktif via `useMemo`.
 7. **Penyimpanan Otomatis Real-Time (Auto-Save)**: Pengaturan disimpan seketika ke `localStorage` dan server Cache Laravel saat nilai diubah dengan indikator animasi tersimpan tanpa perlu tombol manual.
 
+### 5.10 Fitur Manajemen Gudang & Pengaturan Tingkat Lanjut (v2.5.2 — Point 1-5)
+1. **Pengaturan Cetak Label QR Kardus & Rak Fisik (Point 1)**:
+   - Pilihan ukuran label standar pencetakan: *Kecil (30x20mm)*, *Sedang (50x30mm)*, dan *Standar Rak (70x40mm)*.
+   - Opsi toggle penyertaan informasi produk (Nama Barang, SKU, dan Kategori) pada lembar label fisik.
+   - Tombol "Cetak Label" interaktif pada modal pop-up QR Code Produk (`Produk/Index.jsx`) yang langsung membuka window cetak browser dengan dimensi presisi dan styling ramah printer thermal/kertas stiker.
+2. **Manajemen Data & Cadangan Gudang (Database Snapshot & Cache Server) (Point 2)**:
+   - Tab navigasi khusus "Manajemen Data & Cadangan" pada halaman Pengaturan (`/pengaturan`).
+   - **Ekspor Cadangan Data (`GET /api/settings/backup`)**: Menghasilkan file JSON snapshot komprehensif berisi seluruh entitas database (`kategori`, `pemasok`, `produk`, `batch`, dan riwayat transaksi stok) yang diunduh langsung ke perangkat dengan format nama `backup-gudang-YYYY-MM-DD-His.json`.
+   - **Pembersihan Cache Sistem (`POST /api/settings/clear-cache`)**: Mengosongkan cache query dan preferensi sistem secara instan (`Cache::flush()`) untuk menyegarkan memori performa server.
+3. **Default Ambang Stok Menipis Produk Baru (Point 3)**:
+   - Konfigurasi ambang stok minimal default (5, 10, 20, 50 unit) di menu Pengaturan.
+   - Terintegrasi otomatis ke formulir registrasi produk baru (`Produk/Create.jsx`) sehingga operator tidak perlu menginput stok minimal secara berulang.
+4. **Format Tampilan Tanggal & Waktu Transaksi (Point 4)**:
+   - Konfigurasi format tampilan tanggal transaksi global: `DD/MM/YYYY` (Standar Indonesia), `YYYY-MM-DD` (ISO), dan `DD MMMM YYYY` (Format Panjang).
+   - Terintegrasi reaktif melalui utilitas `formatDateByPreference` pada tabel riwayat transaksi stok (`Stok/Index.jsx`), laporan (`Laporan/Index.jsx`), serta profil pengguna.
+5. **Kebijakan Pengeluaran Barang (FIFO / First-In First-Out Recommendation) (Point 5)**:
+   - Toggle kebijakan pengeluaran stok FIFO di tab Gudang & Mutasi Pengaturan.
+   - Terintegrasi langsung pada formulir mutasi barang keluar (`Stok/Keluar.jsx`):
+     - Batch terurut otomatis mendahulukan tanggal kadaluarsa terawal (FEFO) dan tanggal masuk tertua (FIFO).
+     - Batch tertua otomatis terpilih (*auto-select*) saat produk ditentukan.
+     - Penanda visual opsi `⭐ [Rekomendasi FIFO]` pada dropdown batch.
+     - Banner status hijau jika memilih batch yang sesuai kebijakan FIFO, atau banner peringatan amber jika memilih batch berbeda.
+     - Peringatan kontekstual pada dialog konfirmasi mutasi stok jika terjadi deviasi dari rekomendasi FIFO.
+
 ---
 
 ## 6. Daftar API Endpoints
@@ -215,11 +239,13 @@ Menu kustomisasi lengkap yang menerapkan prinsip modern **Auto-Save on Change (T
 | `POST` | `/api/profile/preferences` | Menyimpan preferensi akun pengguna ke server Cache Laravel |
 | `GET, POST, PUT, DELETE` | `/api/users` | Manajemen pengguna oleh admin |
 
-#### Pengaturan Sistem
+#### Pengaturan Sistem & Cadangan
 | Method | Endpoint | Fungsi |
 |---|---|---|
-| `GET` | `/api/settings` | Mengambil preferensi sistem (tema, bahasa, auto_refresh, dsb.) |
-| `POST` | `/api/settings` | Menyimpan preferensi sistem ke server-side cache |
+| `GET` | `/api/settings` | Mengambil preferensi sistem (tema, bahasa, auto_refresh, format tanggal, dsb.) |
+| `POST` | `/api/settings` | Menyimpan preferensi sistem ke server-side cache secara reaktif |
+| `GET` | `/api/settings/backup` | Mengunduh file JSON snapshot cadangan database gudang |
+| `POST` | `/api/settings/clear-cache` | Mengosongkan cache query dan preferensi server |
 
 #### Dashboard
 | Method | Endpoint | Fungsi |

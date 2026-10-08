@@ -5,14 +5,7 @@ import {
     ArrowUp, ArrowDown, RefreshCw, Filter, X, Download
 } from 'lucide-react';
 import Swal from 'sweetalert2';
-
-// Date Formatter di luar komponen agar hemat memori (tidak dibuat berulang-ulang)
-const dateTimeFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit'
-});
-const shortTimeFormatter = new Intl.DateTimeFormat('id-ID', {
-    day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit'
-});
+import { formatDateByPreference } from '../../lib/formatters';
 
 export default function StokIndex() {
     const [transactions, setTransactions] = useState([]);
@@ -27,7 +20,7 @@ export default function StokIndex() {
     const [totalItems, setTotalItems] = useState(0);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [showMobileFilter, setShowMobileFilter] = useState(false);
-    // Dynamic pagination from user settings (Point 5)
+    // Dynamic pagination & date format from user settings (Point 4 & 5)
     const [perPage, setPerPage] = useState(() => {
         try {
             const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
@@ -36,12 +29,23 @@ export default function StokIndex() {
             return 10;
         }
     });
+    const [dateFormat, setDateFormat] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return s.date_format || 'DD/MM/YYYY';
+        } catch {
+            return 'DD/MM/YYYY';
+        }
+    });
 
     useEffect(() => {
         const handleSettingsChange = (e) => {
             if (e.detail?.pagination_limit) {
                 setPerPage(parseInt(e.detail.pagination_limit, 10) || 10);
                 setCurrentPage(1);
+            }
+            if (e.detail?.date_format) {
+                setDateFormat(e.detail.date_format);
             }
         };
         window.addEventListener('app-settings-changed', handleSettingsChange);
@@ -375,7 +379,7 @@ export default function StokIndex() {
 
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{item.user?.name || '-'}</td>
                                                 <td className="px-4 py-3 text-gray-400">
-                                                    {item.tanggal ? dateTimeFormatter.format(new Date(item.tanggal)) : '-'}
+                                                    {item.tanggal ? formatDateByPreference(item.tanggal, dateFormat, true) : '-'}
                                                 </td>
                                             </tr>
                                         );
@@ -417,7 +421,7 @@ export default function StokIndex() {
                                         </div>
 
                                         <p className="text-[10px] text-gray-400">
-                                            {item.tanggal ? shortTimeFormatter.format(new Date(item.tanggal)) : '-'}
+                                            {item.tanggal ? formatDateByPreference(item.tanggal, dateFormat, true) : '-'}
                                         </p>
                                     </div>
                                 );

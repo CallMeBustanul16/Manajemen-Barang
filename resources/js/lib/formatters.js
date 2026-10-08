@@ -2,7 +2,7 @@
  * Formatter utilities for dates and preferences
  */
 
-export function formatDateByPreference(dateInput, explicitFormat = null) {
+export function formatDateByPreference(dateInput, explicitFormat = null, includeTime = false) {
     if (!dateInput) return '-';
     
     let date;
@@ -18,8 +18,9 @@ export function formatDateByPreference(dateInput, explicitFormat = null) {
     let format = explicitFormat;
     if (!format) {
         try {
+            const appSettings = JSON.parse(localStorage.getItem('appSettings') || '{}');
             const prefs = JSON.parse(localStorage.getItem('userPreferences') || '{}');
-            format = prefs.date_format || 'DD/MM/YYYY';
+            format = appSettings.date_format || prefs.date_format || 'DD/MM/YYYY';
         } catch (e) {
             format = 'DD/MM/YYYY';
         }
@@ -29,18 +30,25 @@ export function formatDateByPreference(dateInput, explicitFormat = null) {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const year = date.getFullYear();
 
-    if (format === 'YYYY-MM-DD') {
-        return `${year}-${month}-${day}`;
-    }
+    let formattedDate = `${day}/${month}/${year}`;
 
-    if (format === 'DD MMMM YYYY') {
+    if (format === 'YYYY-MM-DD') {
+        formattedDate = `${year}-${month}-${day}`;
+    } else if (format === 'DD MMMM YYYY') {
         const months = [
             'Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni',
             'Juli', 'Agustus', 'September', 'Oktober', 'November', 'Desember'
         ];
-        return `${day} ${months[date.getMonth()]} ${year}`;
+        formattedDate = `${day} ${months[date.getMonth()]} ${year}`;
+    } else {
+        formattedDate = `${day}/${month}/${year}`;
     }
 
-    // Default 'DD/MM/YYYY'
-    return `${day}/${month}/${year}`;
+    if (includeTime) {
+        const hours = String(date.getHours()).padStart(2, '0');
+        const minutes = String(date.getMinutes()).padStart(2, '0');
+        return `${formattedDate} ${hours}:${minutes}`;
+    }
+
+    return formattedDate;
 }
