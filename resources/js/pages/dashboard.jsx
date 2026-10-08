@@ -21,8 +21,6 @@ export default function Dashboard() {
     const [lastUpdated, setLastUpdated] = useState(new Date());
     const [autoRefreshActive, setAutoRefreshActive] = useState(false);
     const [refreshInterval, setRefreshInterval] = useState(5);
-    const [currencyFormat, setCurrencyFormat] = useState('IDR');
-    const [numberFormat, setNumberFormat] = useState('id');
     const [showStockCount, setShowStockCount] = useState(true);
 
     const [stats, setStats] = useState({
@@ -68,12 +66,6 @@ export default function Dashboard() {
                 }
                 if (typeof settingsObj.refresh_interval !== 'undefined') {
                     setRefreshInterval(parseInt(settingsObj.refresh_interval, 10) || 5);
-                }
-                if (typeof settingsObj.currency_format !== 'undefined') {
-                    setCurrencyFormat(settingsObj.currency_format || 'IDR');
-                }
-                if (typeof settingsObj.number_format !== 'undefined') {
-                    setNumberFormat(settingsObj.number_format || 'id');
                 }
                 if (typeof settingsObj.show_stock !== 'undefined') {
                     setShowStockCount(Boolean(settingsObj.show_stock));

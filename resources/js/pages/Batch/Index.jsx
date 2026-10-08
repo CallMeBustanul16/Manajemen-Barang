@@ -36,6 +36,15 @@ export default function BatchHome() {
         }
     });
 
+    const [tableDensity, setTableDensity] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return s.table_density || 'comfortable';
+        } catch {
+            return 'comfortable';
+        }
+    });
+
     useEffect(() => {
         const handleSettingsChange = (e) => {
             if (e.detail?.pagination_limit) {
@@ -44,6 +53,9 @@ export default function BatchHome() {
             }
             if (e.detail?.batch_expiry_warning_days) {
                 setExpiryWarningDays(parseInt(e.detail.batch_expiry_warning_days, 10) || 30);
+            }
+            if (e.detail?.table_density) {
+                setTableDensity(e.detail.table_density);
             }
         };
         window.addEventListener('app-settings-changed', handleSettingsChange);
@@ -302,6 +314,9 @@ export default function BatchHome() {
         return uniqueProduks;
     }, [batches]);
 
+    const cellPadding = tableDensity === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3';
+    const mobilePadding = tableDensity === 'compact' ? 'p-2.5 space-y-2' : 'p-4 space-y-3';
+
     // Daftar produk unik dari batch
     const produkUnik = [...new Set(batches.map(b => b.produk?.id))]
         .map(id => batches.find(b => b.produk?.id === id)?.produk)
@@ -403,74 +418,74 @@ export default function BatchHome() {
                     <>
                         {/* DESKTOP TABLE */}
                         <div className="hidden md:block overflow-x-auto">
-                            <table className="w-full text-sm text-left">
-                                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
-                                    <tr>
-                                        <th className="px-4 py-3 font-semibold">#</th>
-                                        <th className="px-4 py-3 font-semibold">Produk</th>
-                                        <th className="px-4 py-3 font-semibold text-center">Status</th>
-                                        <th className="px-4 py-3 font-semibold text-center">Isi / Kapasitas</th>
-                                        <th className="px-4 py-3 font-semibold hidden lg:table-cell">Lokasi</th>
-                                        <th className="px-4 py-3 font-semibold hidden xl:table-cell">QR Code</th>
-                                        <th className="px-4 py-3 font-semibold text-center">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {paginatedData.map((item, index) => {
-                                        const status = getBatchStatus(item);
-                                        const expStatus = getExpiryStatus(item);
-                                        const StatusIcon = status.icon;
-                                        return (
-                                            <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
-                                                <td className="px-4 py-3 text-gray-500 dark:text-gray-400">
-                                                    {(currentPage - 1) * perPage + index + 1}
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="font-medium text-gray-900 dark:text-white">
-                                                        {item.produk?.nama_produk || '-'}
-                                                    </div>
-                                                    <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
-                                                        <span className="text-xs text-gray-500 dark:text-gray-400">
-                                                            Batch #{item.id}
-                                                        </span>
-                                                        {expStatus && (
-                                                            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${expStatus.color}`}>
-                                                                {expStatus.label}
+                                    <table className="w-full text-sm text-left">
+                                        <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+                                            <tr>
+                                                <th className={`${cellPadding} font-semibold`}>#</th>
+                                                <th className={`${cellPadding} font-semibold`}>Produk</th>
+                                                <th className={`${cellPadding} font-semibold text-center`}>Status</th>
+                                                <th className={`${cellPadding} font-semibold text-center`}>Isi / Kapasitas</th>
+                                                <th className={`${cellPadding} font-semibold hidden lg:table-cell`}>Lokasi</th>
+                                                <th className={`${cellPadding} font-semibold hidden xl:table-cell`}>QR Code</th>
+                                                <th className={`${cellPadding} font-semibold text-center`}>Aksi</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                            {paginatedData.map((item, index) => {
+                                                const status = getBatchStatus(item);
+                                                const expStatus = getExpiryStatus(item);
+                                                const StatusIcon = status.icon;
+                                                return (
+                                                    <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                                                        <td className={`${cellPadding} text-gray-500 dark:text-gray-400`}>
+                                                            {(currentPage - 1) * perPage + index + 1}
+                                                        </td>
+                                                        <td className={cellPadding}>
+                                                            <div className="font-medium text-gray-900 dark:text-white">
+                                                                {item.produk?.nama_produk || '-'}
+                                                            </div>
+                                                            <div className="flex flex-wrap items-center gap-1.5 mt-0.5">
+                                                                <span className="text-xs text-gray-500 dark:text-gray-400">
+                                                                    Batch #{item.id}
+                                                                </span>
+                                                                {expStatus && (
+                                                                    <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold ${expStatus.color}`}>
+                                                                        {expStatus.label}
+                                                                    </span>
+                                                                )}
+                                                            </div>
+                                                        </td>
+                                                        <td className={`${cellPadding} text-center`}>
+                                                            <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.bg}`}>
+                                                                <StatusIcon className="w-3 h-3" />
+                                                                {status.label}
                                                             </span>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs font-medium ${status.bg}`}>
-                                                        <StatusIcon className="w-3 h-3" />
-                                                        {status.label}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="space-y-1">
-                                                        <div className="flex items-center justify-between text-xs">
-                                                            <span className="font-semibold text-gray-900 dark:text-white">
-                                                                {item.stok_saat_ini}/{item.kapasitas}
+                                                        </td>
+                                                        <td className={cellPadding}>
+                                                            <div className="space-y-1">
+                                                                <div className="flex items-center justify-between text-xs">
+                                                                    <span className="font-semibold text-gray-900 dark:text-white">
+                                                                        {item.stok_saat_ini}/{item.kapasitas}
+                                                                    </span>
+                                                                    <span className="text-gray-400">{status.persentase}%</span>
+                                                                </div>
+                                                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
+                                                                    <div
+                                                                        className={`h-2 rounded-full transition-all ${status.barColor}`}
+                                                                        style={{ width: `${status.persentase}%` }}
+                                                                    ></div>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className={`${cellPadding} hidden lg:table-cell text-gray-600 dark:text-gray-400`}>
+                                                            {item.lokasi_rak || '-'}
+                                                        </td>
+                                                        <td className={`${cellPadding} hidden xl:table-cell`}>
+                                                            <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
+                                                                {item.qr_code?.substring(0, 20)}...
                                                             </span>
-                                                            <span className="text-gray-400">{status.persentase}%</span>
-                                                        </div>
-                                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2">
-                                                            <div
-                                                                className={`h-2 rounded-full transition-all ${status.barColor}`}
-                                                                style={{ width: `${status.persentase}%` }}
-                                                            ></div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 hidden lg:table-cell text-gray-600 dark:text-gray-400">
-                                                    {item.lokasi_rak || '-'}
-                                                </td>
-                                                <td className="px-4 py-3 hidden xl:table-cell">
-                                                    <span className="text-xs font-mono text-gray-500 dark:text-gray-400">
-                                                        {item.qr_code?.substring(0, 20)}...
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
+                                                        </td>
+                                                        <td className={cellPadding}>
                                                     <div className="flex items-center justify-center gap-1 sm:gap-2">
                                                         <Link
                                                             to={`/batch/detail/${item.id}`}
@@ -522,7 +537,7 @@ export default function BatchHome() {
                                 const status = getBatchStatus(item);
                                 const StatusIcon = status.icon;
                                 return (
-                                    <div key={item.id} className="p-4 space-y-3">
+                                    <div key={item.id} className={mobilePadding}>
                                         <div className="flex justify-between items-start">
                                             <div className="flex-1 min-w-0">
                                                 <div className="font-medium text-gray-900 dark:text-white truncate">

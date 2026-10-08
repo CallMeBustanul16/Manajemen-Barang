@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { 
     Sliders, Bell, Shield, Info, Monitor, Sun, Moon, Globe, 
     RotateCw, Eye, Check, Clock, Laptop, ShieldCheck, AlertTriangle,
-    Camera, Volume2, Boxes, Coins, CalendarClock, Hash
+    Camera, Volume2, Boxes, Rows, CalendarClock, ArrowUpDown
 } from 'lucide-react';
 import { gunakanDarkMode } from '../../context/DarkModeContext';
 import { useLanguage } from '../../context/LanguageContext';
@@ -22,8 +22,8 @@ export default function SettingsPage() {
         show_stock: true,
         // Format & Display (Point 5 & 6)
         pagination_limit: '10', // Point 5: 10, 25, 50, 100 rows
-        currency_format: 'IDR', // Point 6: IDR, USD
-        number_format: 'id', // Point 6: id, en
+        table_density: 'comfortable', // 'comfortable' | 'compact'
+        default_sort: 'newest', // 'newest' | 'lowest_stock' | 'highest_stock' | 'name_asc'
         // Scanner & Kamera (Point 2)
         scanner_sound: true,
         scanner_camera: 'environment', // 'environment' | 'user'
@@ -591,7 +591,7 @@ export default function SettingsPage() {
                             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-5">
                                 <div className="flex items-start gap-3.5">
                                     <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-300">
-                                        <Coins className="w-5 h-5 text-gray-600 dark:text-gray-300" />
+                                        <Rows className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                                     </div>
                                     <div>
                                         <h3 className="text-sm font-bold text-gray-900 dark:text-white">
@@ -621,33 +621,35 @@ export default function SettingsPage() {
                                         </select>
                                     </div>
 
-                                    {/* Currency Format */}
+                                    {/* Table Row Density */}
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                                            {t('currencyFormat')}
+                                            {t('tableDensity')}
                                         </label>
                                         <select
-                                            value={settings.currency_format}
-                                            onChange={(e) => handleUpdateSetting('currency_format', e.target.value)}
+                                            value={settings.table_density || 'comfortable'}
+                                            onChange={(e) => handleUpdateSetting('table_density', e.target.value)}
                                             className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition cursor-pointer"
                                         >
-                                            <option value="IDR">{t('currencyIDR')}</option>
-                                            <option value="USD">{t('currencyUSD')}</option>
+                                            <option value="comfortable">{t('densityComfortable')}</option>
+                                            <option value="compact">{t('densityCompact')}</option>
                                         </select>
                                     </div>
 
-                                    {/* Number Format */}
+                                    {/* Default Sort Order */}
                                     <div>
                                         <label className="block text-xs font-semibold text-gray-700 dark:text-gray-300 mb-1.5">
-                                            {t('numberFormat')}
+                                            {t('defaultSort')}
                                         </label>
                                         <select
-                                            value={settings.number_format}
-                                            onChange={(e) => handleUpdateSetting('number_format', e.target.value)}
+                                            value={settings.default_sort || 'newest'}
+                                            onChange={(e) => handleUpdateSetting('default_sort', e.target.value)}
                                             className="w-full px-3.5 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition cursor-pointer"
                                         >
-                                            <option value="id">{t('numberFormatId')}</option>
-                                            <option value="en">{t('numberFormatEn')}</option>
+                                            <option value="newest">{t('sortNewest')}</option>
+                                            <option value="lowest_stock">{t('sortLowestStock')}</option>
+                                            <option value="highest_stock">{t('sortHighestStock')}</option>
+                                            <option value="name_asc">{t('sortNameAsc')}</option>
                                         </select>
                                     </div>
                                 </div>

@@ -18,7 +18,7 @@ export default function ProdukHome() {
     const [qrModalImage, setQrModalImage] = useState(null);
     const [qrLoading, setQrLoading] = useState(false);
     
-    // Dynamic pagination from user settings (Point 5)
+    // Dynamic pagination, table density & default sort from user settings (Point 5 & 6)
     const [perPage, setPerPage] = useState(() => {
         try {
             const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
@@ -28,11 +28,35 @@ export default function ProdukHome() {
         }
     });
 
+    const [tableDensity, setTableDensity] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return s.table_density || 'comfortable';
+        } catch {
+            return 'comfortable';
+        }
+    });
+
+    const [defaultSort, setDefaultSort] = useState(() => {
+        try {
+            const s = JSON.parse(localStorage.getItem('appSettings') || '{}');
+            return s.default_sort || 'newest';
+        } catch {
+            return 'newest';
+        }
+    });
+
     useEffect(() => {
         const handleSettingsChange = (e) => {
             if (e.detail?.pagination_limit) {
                 setPerPage(parseInt(e.detail.pagination_limit, 10) || 10);
                 setCurrentPage(1);
+            }
+            if (e.detail?.table_density) {
+                setTableDensity(e.detail.table_density);
+            }
+            if (e.detail?.default_sort) {
+                setDefaultSort(e.detail.default_sort);
             }
         };
         window.addEventListener('app-settings-changed', handleSettingsChange);
@@ -93,13 +117,29 @@ export default function ProdukHome() {
         return { label: 'Aman', color: 'bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400' };
     };
 
-    // Filter & Pagination dihitung secara dinamis via useMemo (Memori Ringan)
+    // Filter & Sorting dihitung secara dinamis via useMemo (Memori Ringan)
     const filteredData = useMemo(() => {
-        return produk.filter(item =>
+        const list = produk.filter(item =>
             item.nama_produk?.toLowerCase().includes(search.toLowerCase()) ||
             item.sku?.toLowerCase().includes(search.toLowerCase())
         );
-    }, [produk, search]);
+
+        return list.slice().sort((a, b) => {
+            if (defaultSort === 'lowest_stock') {
+                return (Number(a.stok) || 0) - (Number(b.stok) || 0);
+            }
+            if (defaultSort === 'highest_stock') {
+                return (Number(b.stok) || 0) - (Number(a.stok) || 0);
+            }
+            if (defaultSort === 'name_asc') {
+                return (a.nama_produk || '').localeCompare(b.nama_produk || '');
+            }
+            // default 'newest': sort by id descending
+            const idA = Number(a.id) || 0;
+            const idB = Number(b.id) || 0;
+            return idB - idA;
+        });
+    }, [produk, search, defaultSort]);
 
     const totalPages = useMemo(() => {
         return Math.ceil(filteredData.length / perPage) || 1;
@@ -108,6 +148,9 @@ export default function ProdukHome() {
     const paginatedData = useMemo(() => {
         return filteredData.slice((currentPage - 1) * perPage, currentPage * perPage);
     }, [filteredData, currentPage]);
+
+    const cellPadding = tableDensity === 'compact' ? 'px-3 py-1.5' : 'px-4 py-3';
+    const mobilePadding = tableDensity === 'compact' ? 'p-2 space-y-1.5' : 'p-3 space-y-2';
 
     const handleOpenQrModal = async (item) => {
         setQrLoading(true);
@@ -230,111 +273,111 @@ export default function ProdukHome() {
                     <>
                         {/* Tampilan Desktop (Tabel) */}
                         <div className="hidden md:block overflow-x-auto">
-                            <table className="w-full text-xs text-left">
-                                <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
-                                    <tr>
-                                        <th className="px-4 py-3">No</th>
-                                        <th className="px-4 py-3">Produk</th>
-                                        <th className="px-4 py-3">Kategori</th>
-                                        <th className="px-4 py-3 text-center">Stok</th>
-                                        <th className="px-4 py-3 text-center">Aksi</th>
-                                        <th className="px-4 py-3 text-center">QR Code</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                                    {paginatedData.map((item, index) => {
-                                        const status = getStatusStok(item.stok, item.stok_minimal || 5);
-                                        return (
-                                            <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
-                                                <td className="px-4 py-3 text-gray-500">{(currentPage - 1) * perPage + index + 1}</td>
-                                                <td className="px-4 py-3">
-                                                    <div className="font-semibold text-gray-900 dark:text-white">{item.nama_produk}</div>
-                                                    <div className="text-[11px] text-gray-400">SKU: {item.sku}</div>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">
-                                                        {item.kategori?.nama_kategori || '-'}
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${status.color}`}>
-                                                        {status.label} ({item.stok})
-                                                    </span>
-                                                </td>
-                                                <td className="px-4 py-3">
-                                                    <div className="flex items-center justify-center gap-1">
-                                                        <button onClick={() => navigate(`/Produk/edit/${item.id}`)} className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded">
-                                                            <Edit className="w-4 h-4" />
-                                                        </button>
-                                                        <button onClick={() => handleDelete(item.id, item.nama_produk)} className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
-                                                            <Trash2 className="w-4 h-4" />
-                                                        </button>
-                                                    </div>
-                                                </td>
-                                                <td className="px-4 py-3 text-center">
-                                                    {item.qr_code ? (
-                                                        <button 
-                                                            onClick={() => handleOpenQrModal(item)} 
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg transition-colors" 
-                                                            title="Lihat QR Code"
-                                                        >
-                                                            <QrCode className="w-3.5 h-3.5" />
-                                                            <span>Lihat QR</span>
-                                                        </button>
-                                                    ) : (
-                                                        <button 
-                                                            onClick={() => handleOpenQrModal(item)} 
-                                                            className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition-colors"
-                                                        >
-                                                            <QrCode className="w-3.5 h-3.5" />
-                                                            <span>Generate</span>
-                                                        </button>
-                                                    )}
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                </tbody>
-                            </table>
-                        </div>
-
-                        {/* Tampilan Mobile (Card Stack) */}
-                        <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
-                            {paginatedData.map((item) => {
-                                const status = getStatusStok(item.stok, item.stok_minimal || 5);
-                                return (
-                                    <div key={item.id} className="p-3 space-y-2">
-                                        <div className="flex justify-between items-start">
-                                            <div>
-                                                <p className="font-semibold text-xs text-gray-900 dark:text-white">{item.nama_produk}</p>
-                                                <p className="text-[11px] text-gray-400">SKU: {item.sku}</p>
-                                            </div>
-                                            <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${status.color}`}>
-                                                {status.label}: {item.stok}
-                                            </span>
-                                        </div>
-                                        <div className="flex justify-between items-center pt-1 border-t border-gray-100 dark:border-gray-700/50">
-                                            <span className="text-[11px] text-gray-500">{item.kategori?.nama_kategori || 'Tanpa Kategori'}</span>
-                                            <div className="flex items-center gap-2">
-                                                <button 
-                                                    onClick={() => handleOpenQrModal(item)} 
-                                                    className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-red-50 text-red-600 font-semibold rounded border border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400"
-                                                >
-                                                    <QrCode className="w-3 h-3" />
-                                                    <span>{item.qr_code ? 'QR' : 'Generate'}</span>
-                                                </button>
-                                                <button onClick={() => navigate(`/Produk/edit/${item.id}`)} className="p-1 text-blue-600">
-                                                    <Edit className="w-4 h-4" />
-                                                </button>
-                                                <button onClick={() => handleDelete(item.id, item.nama_produk)} className="p-1 text-red-600">
-                                                    <Trash2 className="w-4 h-4" />
-                                                </button>
-                                            </div>
-                                        </div>
+                                        <table className="w-full text-xs text-left">
+                                            <thead className="bg-gray-50 dark:bg-gray-700/50 text-gray-700 dark:text-gray-300 border-b border-gray-200 dark:border-gray-700">
+                                                <tr>
+                                                    <th className={cellPadding}>No</th>
+                                                    <th className={cellPadding}>Produk</th>
+                                                    <th className={cellPadding}>Kategori</th>
+                                                    <th className={`${cellPadding} text-center`}>Stok</th>
+                                                    <th className={`${cellPadding} text-center`}>Aksi</th>
+                                                    <th className={`${cellPadding} text-center`}>QR Code</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                                                {paginatedData.map((item, index) => {
+                                                    const status = getStatusStok(item.stok, item.stok_minimal || 5);
+                                                    return (
+                                                        <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
+                                                            <td className={`${cellPadding} text-gray-500`}>{(currentPage - 1) * perPage + index + 1}</td>
+                                                            <td className={cellPadding}>
+                                                                <div className="font-semibold text-gray-900 dark:text-white">{item.nama_produk}</div>
+                                                                <div className="text-[11px] text-gray-400">SKU: {item.sku}</div>
+                                                            </td>
+                                                            <td className={cellPadding}>
+                                                                <span className="px-2 py-0.5 bg-gray-100 dark:bg-gray-700 rounded text-[11px]">
+                                                                    {item.kategori?.nama_kategori || '-'}
+                                                                </span>
+                                                            </td>
+                                                            <td className={`${cellPadding} text-center`}>
+                                                                <span className={`px-2 py-0.5 rounded-full text-[11px] font-semibold ${status.color}`}>
+                                                                    {status.label} ({item.stok})
+                                                                </span>
+                                                            </td>
+                                                            <td className={cellPadding}>
+                                                                <div className="flex items-center justify-center gap-1">
+                                                                    <button onClick={() => navigate(`/Produk/edit/${item.id}`)} className="p-1.5 text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 rounded">
+                                                                        <Edit className="w-4 h-4" />
+                                                                    </button>
+                                                                    <button onClick={() => handleDelete(item.id, item.nama_produk)} className="p-1.5 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/30 rounded">
+                                                                        <Trash2 className="w-4 h-4" />
+                                                                    </button>
+                                                                </div>
+                                                            </td>
+                                                            <td className={`${cellPadding} text-center`}>
+                                                                {item.qr_code ? (
+                                                                    <button 
+                                                                        onClick={() => handleOpenQrModal(item)} 
+                                                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold text-red-600 hover:text-red-700 bg-red-50 hover:bg-red-100 dark:bg-red-900/30 dark:hover:bg-red-900/50 rounded-lg transition-colors" 
+                                                                        title="Lihat QR Code"
+                                                                    >
+                                                                        <QrCode className="w-3.5 h-3.5" />
+                                                                        <span>Lihat QR</span>
+                                                                    </button>
+                                                                ) : (
+                                                                    <button 
+                                                                        onClick={() => handleOpenQrModal(item)} 
+                                                                        className="inline-flex items-center gap-1 px-2.5 py-1 text-[11px] font-semibold bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm transition-colors"
+                                                                    >
+                                                                        <QrCode className="w-3.5 h-3.5" />
+                                                                        <span>Generate</span>
+                                                                    </button>
+                                                                )}
+                                                            </td>
+                                                        </tr>
+                                                    );
+                                                })}
+                                            </tbody>
+                                        </table>
                                     </div>
-                                );
-                            })}
-                        </div>
+
+                                    {/* Tampilan Mobile (Card Stack) */}
+                                    <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
+                                        {paginatedData.map((item) => {
+                                            const status = getStatusStok(item.stok, item.stok_minimal || 5);
+                                            return (
+                                                <div key={item.id} className={mobilePadding}>
+                                                    <div className="flex justify-between items-start">
+                                                        <div>
+                                                            <p className="font-semibold text-xs text-gray-900 dark:text-white">{item.nama_produk}</p>
+                                                            <p className="text-[11px] text-gray-400">SKU: {item.sku}</p>
+                                                        </div>
+                                                        <span className={`px-2 py-0.5 rounded text-[10px] font-semibold ${status.color}`}>
+                                                            {status.label}: {item.stok}
+                                                        </span>
+                                                    </div>
+                                                    <div className="flex justify-between items-center pt-1 border-t border-gray-100 dark:border-gray-700/50">
+                                                        <span className="text-[11px] text-gray-500">{item.kategori?.nama_kategori || 'Tanpa Kategori'}</span>
+                                                        <div className="flex items-center gap-2">
+                                                            <button 
+                                                                onClick={() => handleOpenQrModal(item)} 
+                                                                className="inline-flex items-center gap-1 px-2 py-0.5 text-[10px] bg-red-50 text-red-600 font-semibold rounded border border-red-200 dark:bg-red-900/30 dark:border-red-800 dark:text-red-400"
+                                                            >
+                                                                <QrCode className="w-3 h-3" />
+                                                                <span>{item.qr_code ? 'QR' : 'Generate'}</span>
+                                                            </button>
+                                                            <button onClick={() => navigate(`/Produk/edit/${item.id}`)} className="p-1 text-blue-600">
+                                                                <Edit className="w-4 h-4" />
+                                                            </button>
+                                                            <button onClick={() => handleDelete(item.id, item.nama_produk)} className="p-1 text-red-600">
+                                                                <Trash2 className="w-4 h-4" />
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
 
                         {/* Pagination */}
                         {totalPages > 1 && (

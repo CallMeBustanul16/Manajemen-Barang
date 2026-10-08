@@ -187,7 +187,9 @@ Menu kustomisasi lengkap yang menerapkan prinsip modern **Auto-Save on Change (T
 3. **Ambang Batas Peringatan Kadaluarsa Batch**: Pemantauan usia kedaluwarsa produk batch (7, 14, 30, 60 hari) disertai lencana visual status (*Expired*, *Warning H-X*, *Aman*) pada tabel batch.
 4. **Standardisasi Kode & Prefix Gudang**: Prefix otomatis untuk SKU Produk (contoh: `PRD-`) dan Lot Batch (contoh: `LOT-`) pada pembuatan formulir baru dan pembuatan QR code.
 5. **Default Baris per Halaman (Paginasi)**: Konfigurasi jumlah baris per halaman (10, 25, 50, 100 baris) yang langsung sinkron secara reaktif ke semua tabel (Produk, Batch, Mutasi Stok, Kategori, Pemasok).
-6. **Format Mata Uang & Angka Persediaan**: Pilihan mata uang (IDR / USD) dan pemisah angka desimal/ribuan (Standar Indonesia vs Internasional) pada penghitungan nilai estimasi persediaan dashboard.
+6. **Kerapatan Baris & Urutan Default Data Tabel**:
+   - **Kerapatan Baris Tabel (Row Density)**: Pilihan kerapatan baris tabel *Normal / Nyaman (Standar)* vs *Ringkas / Padat (Lebih Banyak Data)* untuk memaksimalkan jumlah baris inventaris yang muat dalam satu layar tanpa scroll berlebih.
+   - **Urutan Default Data Tabel (Default Sort Order)**: Pilihan urutan data produk otomatis (*Terbaru Ditambahkan*, *Stok Menipis Dahulu / Prioritas Restock*, *Stok Terbanyak Dahulu*, dan *Nama Produk A-Z*) secara reaktif via `useMemo`.
 7. **Penyimpanan Otomatis Real-Time (Auto-Save)**: Pengaturan disimpan seketika ke `localStorage` dan server Cache Laravel saat nilai diubah dengan indikator animasi tersimpan tanpa perlu tombol manual.
 
 ---
@@ -355,4 +357,4 @@ php artisan serve
 
 ---
 
-*Dokumen ini diperbarui untuk mencerminkan status implementasi fitur Manajemen Barang v2.4.0 — Oktober 2026.*
+*Dokumen ini diperbarui untuk mencerminkan status implementasi fitur Manajemen Barang v2.5.1 — Oktober 2026.*

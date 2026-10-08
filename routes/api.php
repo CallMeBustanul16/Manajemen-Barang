@@ -551,8 +551,8 @@ Route::get('/settings', function () {
         'refresh_interval' => '5',
         'show_stock' => true,
         'pagination_limit' => '10',
-        'currency_format' => 'IDR',
-        'number_format' => 'id',
+        'table_density' => 'comfortable',
+        'default_sort' => 'newest',
         'scanner_sound' => true,
         'scanner_camera' => 'environment',
         'scanner_auto_submit' => true,
@@ -564,7 +564,7 @@ Route::get('/settings', function () {
         'notif_sound' => true,
         'session_timeout' => '120',
         'two_factor' => false,
-        'app_version' => '2.4.0',
+        'app_version' => '2.5.1',
     ];
     $settings = array_merge($defaults, \Illuminate\Support\Facades\Cache::get('app_settings', []));
 
