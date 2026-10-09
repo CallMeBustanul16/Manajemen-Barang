@@ -74,6 +74,16 @@ export default function ProfilePage() {
                 setProfile(result.data);
                 if (result.data.avatar) {
                     setAvatarPreview(result.data.avatar);
+                } else {
+                    const localUser = localStorage.getItem('user');
+                    if (localUser) {
+                        try {
+                            const parsed = JSON.parse(localUser);
+                            if (parsed.avatar) {
+                                setAvatarPreview(parsed.avatar);
+                            }
+                        } catch (e) {}
+                    }
                 }
             }
 
@@ -115,6 +125,7 @@ export default function ProfilePage() {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
+                    'Accept': 'application/json',
                     ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
                 },
                 body: JSON.stringify({
@@ -132,9 +143,15 @@ export default function ProfilePage() {
                     timer: 2000,
                     showConfirmButton: false,
                 });
-                const updatedUser = { ...profile, name: profile.name, email: profile.email, avatar: avatarPreview };
+                const updatedUser = { 
+                    ...profile, 
+                    name: profile.name, 
+                    email: profile.email, 
+                    avatar: result.data?.avatar !== undefined ? result.data.avatar : avatarPreview 
+                };
+                setProfile(updatedUser);
                 localStorage.setItem('user', JSON.stringify(updatedUser));
-                window.dispatchEvent(new Event('user-profile-updated'));
+                window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updatedUser }));
             } else {
                 Swal.fire({
                     icon: 'error',
@@ -221,22 +238,65 @@ export default function ProfilePage() {
                 return;
             }
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setAvatarPreview(reader.result);
-                const updated = { ...profile, avatar: reader.result };
+            reader.onloadend = async () => {
+                const base64Data = reader.result;
+                setAvatarPreview(base64Data);
+                const updated = { ...profile, avatar: base64Data };
+                setProfile(updated);
                 localStorage.setItem('user', JSON.stringify(updated));
-                window.dispatchEvent(new Event('user-profile-updated'));
+                window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updated }));
+
+                // Auto-sync avatar ke server backend seketika
+                try {
+                    const token = localStorage.getItem('token');
+                    await fetch('/api/profile', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'Accept': 'application/json',
+                            ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                        },
+                        body: JSON.stringify({
+                            name: profile.name,
+                            email: profile.email,
+                            avatar: base64Data,
+                        }),
+                    });
+                } catch (err) {
+                    console.error('Error auto-syncing avatar:', err);
+                }
             };
             reader.readAsDataURL(file);
         }
     };
 
-    const handleRemovePhoto = () => {
+    const handleRemovePhoto = async () => {
         setAvatarPreview(null);
         if (fileInputRef.current) fileInputRef.current.value = '';
         const updated = { ...profile, avatar: null };
+        setProfile(updated);
         localStorage.setItem('user', JSON.stringify(updated));
-        window.dispatchEvent(new Event('user-profile-updated'));
+        window.dispatchEvent(new CustomEvent('user-profile-updated', { detail: updated }));
+
+        // Auto-sync penghapusan avatar ke server backend
+        try {
+            const token = localStorage.getItem('token');
+            await fetch('/api/profile', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+                },
+                body: JSON.stringify({
+                    name: profile.name,
+                    email: profile.email,
+                    avatar: null,
+                }),
+            });
+        } catch (err) {
+            console.error('Error syncing avatar removal:', err);
+        }
     };
 
     const handleTestSound = () => {

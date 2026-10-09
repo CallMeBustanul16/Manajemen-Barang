@@ -28,13 +28,25 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                 console.error(e);
             }
         }
-        // Fetch fresh profile from API
-        fetch('/api/profile')
+        // Fetch fresh profile from API with auth header
+        const token = localStorage.getItem('token');
+        fetch('/api/profile', {
+            headers: {
+                'Accept': 'application/json',
+                ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            }
+        })
             .then(res => res.json())
             .then(res => {
                 if (res.success && res.data) {
-                    setUser(res.data);
-                    localStorage.setItem('user', JSON.stringify(res.data));
+                    setUser(prev => {
+                        const merged = { ...prev, ...res.data };
+                        if (res.data.avatar !== undefined) {
+                            merged.avatar = res.data.avatar;
+                        }
+                        localStorage.setItem('user', JSON.stringify(merged));
+                        return merged;
+                    });
                 }
             })
             .catch(err => console.error('Error fetching profile:', err));
@@ -43,8 +55,22 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
     useEffect(() => {
         loadUserData();
 
-        const handleProfileUpdate = () => loadUserData();
+        const handleProfileUpdate = (e) => {
+            if (e?.detail) {
+                setUser(e.detail);
+                return;
+            }
+            const userData = localStorage.getItem('user');
+            if (userData) {
+                try {
+                    setUser(JSON.parse(userData));
+                } catch (err) {
+                    console.error(err);
+                }
+            }
+        };
         window.addEventListener('user-profile-updated', handleProfileUpdate);
+        window.addEventListener('storage', handleProfileUpdate);
 
         // Fetch notifications from database
         const fetchNotifications = async () => {
@@ -76,6 +102,7 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
         return () => {
             document.removeEventListener('mousedown', handleClickOutside);
             window.removeEventListener('user-profile-updated', handleProfileUpdate);
+            window.removeEventListener('storage', handleProfileUpdate);
         };
     }, []);
 
@@ -292,9 +319,22 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                             <div className={`absolute right-0 mt-2 w-56 rounded-2xl shadow-xl border p-2 z-50 text-xs animate-in fade-in slide-in-from-top-2 ${
                                 darkMode ? 'bg-gray-900 border-gray-800 text-white' : 'bg-white border-gray-100 text-gray-800'
                             }`}>
-                                <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-800">
-                                    <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{user?.name || 'Admin User'}</p>
-                                    <p className="text-[11px] text-gray-400 truncate mt-0.5">{user?.email || 'admin@admin.com'}</p>
+                                <div className="px-3 py-2.5 border-b border-gray-100 dark:border-gray-800 flex items-center gap-3">
+                                    {user?.avatar ? (
+                                        <img
+                                            src={user.avatar}
+                                            alt={user?.name || 'Admin'}
+                                            className="w-9 h-9 rounded-full object-cover ring-2 ring-red-100 dark:ring-red-950 flex-shrink-0"
+                                        />
+                                    ) : (
+                                        <div className="w-9 h-9 rounded-full bg-red-600 text-white font-bold flex items-center justify-center text-xs shadow-sm ring-2 ring-red-100 dark:ring-red-950 flex-shrink-0">
+                                            {user?.name ? user.name.charAt(0).toUpperCase() : 'A'}
+                                        </div>
+                                    )}
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{user?.name || 'Admin User'}</p>
+                                        <p className="text-[11px] text-gray-400 truncate mt-0.5">{user?.email || 'admin@admin.com'}</p>
+                                    </div>
                                 </div>
 
                                 <div className="py-1 space-y-0.5">

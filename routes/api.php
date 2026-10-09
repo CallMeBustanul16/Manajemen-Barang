@@ -391,6 +391,7 @@ Route::get('/profile', function (Request $request) {
             'email' => $user->email,
             'role' => $user->role == 'admin' ? 'Administrator' : ucfirst($user->role),
             'role_raw' => $user->role,
+            'avatar' => $user->avatar,
             'tanggal_bergabung' => $createdAt->translatedFormat('d F Y'),
             'tanggal_bergabung_iso' => $createdAt->toDateString(),
             'login_terakhir' => \Carbon\Carbon::now()->subMinutes(12)->translatedFormat('l, d F Y H:i') . ' WIB',
@@ -416,6 +417,7 @@ Route::post('/profile', function (Request $request) {
     $validator = \Illuminate\Support\Facades\Validator::make($request->all(), [
         'name' => 'required|string|max:255',
         'email' => 'required|email|max:255|unique:users,email,' . $user->id,
+        'avatar' => 'nullable|string',
     ]);
 
     if ($validator->fails()) {
@@ -428,6 +430,9 @@ Route::post('/profile', function (Request $request) {
 
     $user->name = $request->name;
     $user->email = $request->email;
+    if ($request->has('avatar')) {
+        $user->avatar = $request->avatar;
+    }
     $user->save();
 
     return response()->json([
@@ -438,6 +443,7 @@ Route::post('/profile', function (Request $request) {
             'name' => $user->name,
             'email' => $user->email,
             'role' => $user->role == 'admin' ? 'Administrator' : ucfirst($user->role),
+            'avatar' => $user->avatar,
         ]
     ]);
 });
