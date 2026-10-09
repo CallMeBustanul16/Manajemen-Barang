@@ -32,3 +32,121 @@ body {
 ::-webkit-scrollbar-thumb:hover {
     background: rgba(156, 163, 175, 0.7);
 }
+
+/* ==========================================================================
+   MIDNIGHT NAVY THEME (Deep Blue Logistics & Enterprise)
+   ========================================================================== */
+html[data-theme="navy"] body,
+html[data-theme="navy"] {
+    background-color: #080e1e !important;
+}
+
+html[data-theme="navy"] .bg-\[\#0f172a\] {
+    background-color: #080e1e !important;
+}
+
+html[data-theme="navy"] .bg-gray-900,
+html[data-theme="navy"] .dark\:bg-gray-900,
+html[data-theme="navy"] .dark\:bg-gray-950,
+html[data-theme="navy"] .bg-gray-900\/90 {
+    background-color: #0c162e !important;
+}
+
+html[data-theme="navy"] .bg-white\/95 {
+    background-color: #0c162e !important;
+}
+
+html[data-theme="navy"] .bg-gray-800,
+html[data-theme="navy"] .dark\:bg-gray-800 {
+    background-color: #122044 !important;
+}
+
+html[data-theme="navy"] .bg-gray-700,
+html[data-theme="navy"] .dark\:bg-gray-700,
+html[data-theme="navy"] .dark\:bg-gray-700\/40,
+html[data-theme="navy"] .dark\:bg-gray-700\/50,
+html[data-theme="navy"] .dark\:bg-gray-900\/60,
+html[data-theme="navy"] .dark\:bg-gray-900\/40 {
+    background-color: #182b58 !important;
+}
+
+html[data-theme="navy"] .border-gray-800,
+html[data-theme="navy"] .dark\:border-gray-800,
+html[data-theme="navy"] .border-gray-700,
+html[data-theme="navy"] .dark\:border-gray-700,
+html[data-theme="navy"] .dark\:border-gray-700\/60,
+html[data-theme="navy"] .border-gray-200\/70,
+html[data-theme="navy"] .border-gray-200\/80 {
+    border-color: #1f356c !important;
+}
+
+html[data-theme="navy"] .hover\:bg-gray-700\/50:hover,
+html[data-theme="navy"] .dark\:hover\:bg-gray-700\/50:hover,
+html[data-theme="navy"] .hover\:bg-gray-700\/30:hover,
+html[data-theme="navy"] .dark\:hover\:bg-gray-700\/30:hover,
+html[data-theme="navy"] .hover\:bg-gray-800:hover,
+html[data-theme="navy"] .dark\:hover\:bg-gray-800:hover {
+    background-color: #182b58 !important;
+}
+
+html[data-theme="navy"] ::-webkit-scrollbar-thumb {
+    background: rgba(56, 189, 248, 0.25);
+}
+
+/* ==========================================================================
+   WARM PAPER THEME (Soft Ivory & Eye-care Ergonomics)
+   ========================================================================== */
+html[data-theme="warm"] body,
+html[data-theme="warm"] {
+    background-color: #f5f0e6 !important;
+    color: #292524 !important;
+}
+
+html[data-theme="warm"] .bg-\[\#f4f6fa\],
+html[data-theme="warm"] .bg-gray-50,
+html[data-theme="warm"] .bg-\[\#f1f3f9\],
+html[data-theme="warm"] .bg-gray-100 {
+    background-color: #eae3d2 !important;
+}
+
+html[data-theme="warm"] .bg-white {
+    background-color: #fffdfa !important;
+}
+
+html[data-theme="warm"] .border-gray-100,
+html[data-theme="warm"] .border-gray-200,
+html[data-theme="warm"] .border-gray-200\/80,
+html[data-theme="warm"] .border-gray-200\/70,
+html[data-theme="warm"] .border-gray-300 {
+    border-color: #ded5c2 !important;
+}
+
+html[data-theme="warm"] .text-gray-900 {
+    color: #1c1917 !important;
+}
+
+html[data-theme="warm"] .text-gray-800,
+html[data-theme="warm"] .text-gray-700 {
+    color: #44403c !important;
+}
+
+html[data-theme="warm"] .text-gray-600,
+html[data-theme="warm"] .text-gray-500 {
+    color: #78716c !important;
+}
+
+html[data-theme="warm"] .text-gray-400 {
+    color: #9c9489 !important;
+}
+
+html[data-theme="warm"] .hover\:bg-gray-50:hover {
+    background-color: #f2ebe0 !important;
+}
+
+html[data-theme="warm"] .hover\:bg-gray-100:hover {
+    background-color: #e6dfd1 !important;
+}
+
+html[data-theme="warm"] ::-webkit-scrollbar-thumb {
+    background: rgba(180, 160, 140, 0.4);
+}

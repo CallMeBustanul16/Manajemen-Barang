@@ -1,12 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, Search, Bell, Moon, Sun, LogOut, ChevronDown, Check, User, Settings } from 'lucide-react';
+import { Menu, X, Search, Bell, Moon, Sun, Compass, BookOpen, LogOut, ChevronDown, Check, User, Settings } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
+import { gunakanDarkMode } from '../../context/DarkModeContext';
 import { playNotificationChime } from '../../lib/sound';
 import Swal from 'sweetalert2';
 
 export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDarkMode }) {
     const { t } = useLanguage();
+    const { themeMode } = gunakanDarkMode();
     const navigate = useNavigate();
     const [user, setUser] = useState(null);
     const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -147,15 +149,37 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
 
                 {/* Right: Notifications & User Profile */}
                 <div className="flex items-center gap-4 sm:gap-6">
-                    {/* Dark mode switch */}
+                    {/* Theme mode switch (4 themes: light -> dark -> navy -> warm) */}
                     <button
                         onClick={toggleDarkMode}
-                        className={`p-2 rounded-xl transition-colors ${
-                            darkMode ? 'hover:bg-gray-800 text-amber-400' : 'hover:bg-gray-100 text-gray-500'
+                        className={`p-2 rounded-xl transition-all cursor-pointer ${
+                            themeMode === 'navy'
+                                ? 'hover:bg-blue-900/40 text-blue-400'
+                                : themeMode === 'warm'
+                                ? 'hover:bg-amber-200/50 text-amber-700'
+                                : darkMode
+                                ? 'hover:bg-gray-800 text-red-400'
+                                : 'hover:bg-gray-100 text-amber-500'
                         }`}
-                        title={t('toggleTheme')}
+                        title={`${t('toggleTheme')} (${
+                            themeMode === 'navy' 
+                                ? t('themeNavy') 
+                                : themeMode === 'warm' 
+                                ? t('themeWarm') 
+                                : themeMode === 'dark' 
+                                ? t('themeDark') 
+                                : t('themeLight')
+                        })`}
                     >
-                        {darkMode ? <Sun className="w-4 h-4" /> : <Moon className="w-4 h-4" />}
+                        {themeMode === 'navy' ? (
+                            <Compass className="w-4 h-4" />
+                        ) : themeMode === 'warm' ? (
+                            <BookOpen className="w-4 h-4" />
+                        ) : darkMode ? (
+                            <Moon className="w-4 h-4" />
+                        ) : (
+                            <Sun className="w-4 h-4" />
+                        )}
                     </button>
 
                     {/* Notification Bell with Database Count */}

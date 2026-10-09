@@ -3,7 +3,7 @@ import {
     Sliders, Bell, Shield, Info, Monitor, Sun, Moon, Globe, 
     RotateCw, Eye, Check, Clock, Laptop, ShieldCheck, AlertTriangle,
     Camera, Volume2, Boxes, Rows, CalendarClock, ArrowUpDown,
-    Database, Printer, Download, Layers, Hash
+    Database, Printer, Download, Layers, Hash, Compass, BookOpen
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { gunakanDarkMode } from '../../context/DarkModeContext';
@@ -449,17 +449,17 @@ export default function SettingsPage() {
                                         {t('labelTheme')}
                                     </label>
 
-                                    <div className="grid grid-cols-1 md:grid-cols-12 gap-5 items-stretch">
-                                        {/* 3 Theme Options */}
-                                        <div className="md:col-span-7 grid grid-cols-3 gap-3">
+                                    <div className="grid grid-cols-1 xl:grid-cols-12 gap-5 items-stretch">
+                                        {/* 4 Theme Options */}
+                                        <div className="xl:col-span-8 grid grid-cols-2 sm:grid-cols-4 gap-3">
                                             
                                             {/* Light Card */}
                                             <button
                                                 type="button"
                                                 onClick={() => handleThemeChange('light')}
-                                                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all cursor-pointer ${
+                                                className={`relative flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
                                                     settings.theme === 'light'
-                                                        ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 ring-2 ring-red-500/20 text-gray-900 dark:text-white'
+                                                        ? 'border-red-500 bg-red-50/40 dark:bg-red-950/20 ring-2 ring-red-500/20 text-gray-900 dark:text-white shadow-sm'
                                                         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 hover:border-gray-300 text-gray-600 dark:text-gray-400'
                                                 }`}
                                             >
@@ -470,16 +470,16 @@ export default function SettingsPage() {
                                                 )}
                                                 <Sun className={`w-5 h-5 mb-2 ${settings.theme === 'light' ? 'text-amber-500' : 'text-gray-400'}`} />
                                                 <span className="text-xs font-bold">{t('themeLight')}</span>
-                                                <span className="text-[10px] text-gray-400 mt-0.5">{t('themeLightDesc')}</span>
+                                                <span className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">{t('themeLightDesc')}</span>
                                             </button>
 
                                             {/* Dark Card */}
                                             <button
                                                 type="button"
                                                 onClick={() => handleThemeChange('dark')}
-                                                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all cursor-pointer ${
+                                                className={`relative flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
                                                     settings.theme === 'dark'
-                                                        ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 ring-2 ring-red-500/20 text-gray-900 dark:text-white'
+                                                        ? 'border-red-500 bg-red-50/40 dark:bg-red-950/20 ring-2 ring-red-500/20 text-gray-900 dark:text-white shadow-sm'
                                                         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 hover:border-gray-300 text-gray-600 dark:text-gray-400'
                                                 }`}
                                             >
@@ -490,63 +490,151 @@ export default function SettingsPage() {
                                                 )}
                                                 <Moon className={`w-5 h-5 mb-2 ${settings.theme === 'dark' ? 'text-red-500' : 'text-gray-400'}`} />
                                                 <span className="text-xs font-bold">{t('themeDark')}</span>
-                                                <span className="text-[10px] text-gray-400 mt-0.5">{t('themeDarkDesc')}</span>
+                                                <span className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">{t('themeDarkDesc')}</span>
                                             </button>
 
-                                            {/* System Card */}
+                                            {/* Midnight Navy Card */}
                                             <button
                                                 type="button"
-                                                onClick={() => handleThemeChange('system')}
-                                                className={`relative flex flex-col items-center justify-center p-4 rounded-xl border text-center transition-all cursor-pointer ${
-                                                    settings.theme === 'system'
-                                                        ? 'border-red-500 bg-red-50/30 dark:bg-red-950/20 ring-2 ring-red-500/20 text-gray-900 dark:text-white'
+                                                onClick={() => handleThemeChange('navy')}
+                                                className={`relative flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+                                                    settings.theme === 'navy'
+                                                        ? 'border-blue-500 bg-blue-50/40 dark:bg-blue-950/30 ring-2 ring-blue-500/20 text-gray-900 dark:text-white shadow-sm'
                                                         : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 hover:border-gray-300 text-gray-600 dark:text-gray-400'
                                                 }`}
                                             >
-                                                {settings.theme === 'system' && (
-                                                    <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-red-600 text-white flex items-center justify-center text-[10px]">
+                                                {settings.theme === 'navy' && (
+                                                    <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-blue-600 text-white flex items-center justify-center text-[10px]">
                                                         <Check className="w-2.5 h-2.5" />
                                                     </span>
                                                 )}
-                                                <Laptop className={`w-5 h-5 mb-2 ${settings.theme === 'system' ? 'text-blue-500' : 'text-gray-400'}`} />
-                                                <span className="text-xs font-bold">{t('themeSystem')}</span>
-                                                <span className="text-[10px] text-gray-400 mt-0.5">{t('themeSystemDesc')}</span>
+                                                <Compass className={`w-5 h-5 mb-2 ${settings.theme === 'navy' ? 'text-blue-500' : 'text-gray-400'}`} />
+                                                <span className="text-xs font-bold">{t('themeNavy')}</span>
+                                                <span className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">{t('themeNavyDesc')}</span>
+                                            </button>
+
+                                            {/* Warm Paper Card */}
+                                            <button
+                                                type="button"
+                                                onClick={() => handleThemeChange('warm')}
+                                                className={`relative flex flex-col items-center justify-center p-3.5 rounded-xl border text-center transition-all cursor-pointer ${
+                                                    settings.theme === 'warm'
+                                                        ? 'border-amber-600 bg-amber-50/50 dark:bg-amber-950/20 ring-2 ring-amber-600/20 text-gray-900 dark:text-white shadow-sm'
+                                                        : 'border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900/40 hover:border-gray-300 text-gray-600 dark:text-gray-400'
+                                                }`}
+                                            >
+                                                {settings.theme === 'warm' && (
+                                                    <span className="absolute top-2 right-2 w-4 h-4 rounded-full bg-amber-600 text-white flex items-center justify-center text-[10px]">
+                                                        <Check className="w-2.5 h-2.5" />
+                                                    </span>
+                                                )}
+                                                <BookOpen className={`w-5 h-5 mb-2 ${settings.theme === 'warm' ? 'text-amber-600' : 'text-gray-400'}`} />
+                                                <span className="text-xs font-bold">{t('themeWarm')}</span>
+                                                <span className="text-[10px] text-gray-400 mt-0.5 line-clamp-1">{t('themeWarmDesc')}</span>
                                             </button>
 
                                         </div>
 
                                         {/* Mini Mockup Preview */}
-                                        <div className="md:col-span-5 flex items-center gap-3.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200/70 dark:border-gray-700">
+                                        <div className="xl:col-span-4 flex items-center gap-3.5 p-3 rounded-xl bg-gray-50 dark:bg-gray-900/60 border border-gray-200/70 dark:border-gray-700">
                                             {/* Miniature UI Mockup */}
-                                            <div className="w-28 h-20 rounded-lg overflow-hidden border border-gray-300 dark:border-gray-600 shadow-sm flex flex-shrink-0 bg-gray-900">
+                                            <div className={`w-28 h-20 rounded-lg overflow-hidden border shadow-sm flex flex-shrink-0 transition-colors ${
+                                                settings.theme === 'navy' 
+                                                    ? 'bg-[#080e1e] border-[#1f356c]'
+                                                    : settings.theme === 'warm'
+                                                    ? 'bg-[#f5f0e6] border-[#ded5c2]'
+                                                    : settings.theme === 'light'
+                                                    ? 'bg-slate-100 border-gray-300'
+                                                    : 'bg-gray-950 border-gray-700'
+                                            }`}>
                                                 {/* Mini Sidebar */}
-                                                <div className="w-7 bg-red-800 p-1 flex flex-col gap-1 border-r border-red-900">
-                                                    <div className="w-2.5 h-2.5 rounded bg-white/40 mb-1"></div>
-                                                    <div className="w-4 h-1 rounded bg-white/60"></div>
-                                                    <div className="w-3.5 h-1 rounded bg-white/30"></div>
-                                                    <div className="w-4 h-1 rounded bg-white/30"></div>
+                                                <div className={`w-7 p-1 flex flex-col gap-1 border-r ${
+                                                    settings.theme === 'navy'
+                                                        ? 'bg-[#0c162e] border-[#1f356c]'
+                                                        : settings.theme === 'warm'
+                                                        ? 'bg-[#eae3d2] border-[#ded5c2]'
+                                                        : settings.theme === 'light'
+                                                        ? 'bg-red-600 border-red-700'
+                                                        : 'bg-red-800 border-red-900'
+                                                }`}>
+                                                    <div className={`w-2.5 h-2.5 rounded mb-1 ${settings.theme === 'warm' ? 'bg-amber-800/40' : 'bg-white/40'}`}></div>
+                                                    <div className={`w-4 h-1 rounded ${settings.theme === 'warm' ? 'bg-amber-800/50' : 'bg-white/60'}`}></div>
+                                                    <div className={`w-3.5 h-1 rounded ${settings.theme === 'warm' ? 'bg-amber-800/30' : 'bg-white/30'}`}></div>
+                                                    <div className={`w-4 h-1 rounded ${settings.theme === 'warm' ? 'bg-amber-800/30' : 'bg-white/30'}`}></div>
                                                 </div>
                                                 {/* Mini Body */}
-                                                <div className="flex-1 p-1.5 flex flex-col justify-between bg-gray-950">
-                                                    <div className="flex items-center justify-between pb-1 border-b border-gray-800">
-                                                        <div className="w-6 h-1 bg-gray-700 rounded"></div>
-                                                        <div className="w-2 h-2 rounded-full bg-red-600"></div>
+                                                <div className={`flex-1 p-1.5 flex flex-col justify-between ${
+                                                    settings.theme === 'navy'
+                                                        ? 'bg-[#080e1e]'
+                                                        : settings.theme === 'warm'
+                                                        ? 'bg-[#f5f0e6]'
+                                                        : settings.theme === 'light'
+                                                        ? 'bg-white'
+                                                        : 'bg-gray-950'
+                                                }`}>
+                                                    <div className={`flex items-center justify-between pb-1 border-b ${
+                                                        settings.theme === 'navy'
+                                                            ? 'border-[#1f356c]'
+                                                            : settings.theme === 'warm'
+                                                            ? 'border-[#ded5c2]'
+                                                            : settings.theme === 'light'
+                                                            ? 'border-gray-200'
+                                                            : 'border-gray-800'
+                                                    }`}>
+                                                        <div className={`w-6 h-1 rounded ${settings.theme === 'warm' ? 'bg-stone-300' : 'bg-gray-700'}`}></div>
+                                                        <div className={`w-2 h-2 rounded-full ${settings.theme === 'navy' ? 'bg-blue-500' : settings.theme === 'warm' ? 'bg-amber-600' : 'bg-red-600'}`}></div>
                                                     </div>
                                                     <div className="grid grid-cols-2 gap-1 my-1">
-                                                        <div className="h-4 rounded bg-gray-800 border border-gray-700/60"></div>
-                                                        <div className="h-4 rounded bg-gray-800 border border-gray-700/60"></div>
+                                                        <div className={`h-4 rounded border ${
+                                                            settings.theme === 'navy'
+                                                                ? 'bg-[#122044] border-[#1f356c]'
+                                                                : settings.theme === 'warm'
+                                                                ? 'bg-[#fffdfa] border-[#ded5c2]'
+                                                                : settings.theme === 'light'
+                                                                ? 'bg-gray-50 border-gray-200'
+                                                                : 'bg-gray-800 border-gray-700/60'
+                                                        }`}></div>
+                                                        <div className={`h-4 rounded border ${
+                                                            settings.theme === 'navy'
+                                                                ? 'bg-[#122044] border-[#1f356c]'
+                                                                : settings.theme === 'warm'
+                                                                ? 'bg-[#fffdfa] border-[#ded5c2]'
+                                                                : settings.theme === 'light'
+                                                                ? 'bg-gray-50 border-gray-200'
+                                                                : 'bg-gray-800 border-gray-700/60'
+                                                        }`}></div>
                                                     </div>
-                                                    <div className="h-3 rounded bg-gray-800/80"></div>
+                                                    <div className={`h-3 rounded ${
+                                                        settings.theme === 'navy'
+                                                            ? 'bg-[#182b58]'
+                                                            : settings.theme === 'warm'
+                                                            ? 'bg-[#eae3d2]'
+                                                            : settings.theme === 'light'
+                                                            ? 'bg-gray-100'
+                                                            : 'bg-gray-800/80'
+                                                    }`}></div>
                                                 </div>
                                             </div>
 
                                             {/* Preview Caption */}
                                             <div className="text-left">
                                                 <p className="text-xs font-bold text-gray-900 dark:text-white leading-tight">
-                                                    {darkMode ? t('darkModeActive') : t('lightModeActive')}
+                                                    {settings.theme === 'navy' 
+                                                        ? t('navyModeActive') 
+                                                        : settings.theme === 'warm'
+                                                        ? t('warmModeActive')
+                                                        : settings.theme === 'light'
+                                                        ? t('lightModeActive')
+                                                        : t('darkModeActive')}
                                                 </p>
                                                 <p className="text-[11px] text-gray-400 mt-1 leading-snug">
-                                                    {darkMode ? t('darkPreviewDesc') : t('lightPreviewDesc')}
+                                                    {settings.theme === 'navy'
+                                                        ? t('navyPreviewDesc')
+                                                        : settings.theme === 'warm'
+                                                        ? t('warmPreviewDesc')
+                                                        : settings.theme === 'light'
+                                                        ? t('lightPreviewDesc')
+                                                        : t('darkPreviewDesc')}
                                                 </p>
                                             </div>
                                         </div>
