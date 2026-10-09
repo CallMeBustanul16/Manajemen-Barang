@@ -456,7 +456,7 @@ export default function StokIndex() {
 
             {/* Info Footer */}
             <div className="text-center text-[11px] text-gray-400">
-                Total: {totalItems} transaksi • Update: {lastUpdated ? shortTimeFormatter.format(lastUpdated) : '-'}
+                Total: {totalItems} transaksi • Update: {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
             </div>
         </div>
     );
