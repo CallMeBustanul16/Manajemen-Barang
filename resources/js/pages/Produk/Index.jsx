@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
     Plus, Edit, Trash2, 
     Search, ChevronLeft, ChevronRight, 
-    QrCode, Download, X, Eye, Printer
+    QrCode, Download, X, Eye, Printer, Upload, FileSpreadsheet
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { produkAPI } from '../../lib/api';
@@ -17,6 +17,9 @@ export default function ProdukHome() {
     const [qrModalProduk, setQrModalProduk] = useState(null);
     const [qrModalImage, setQrModalImage] = useState(null);
     const [qrLoading, setQrLoading] = useState(false);
+    const [showImportModal, setShowImportModal] = useState(false);
+    const [importFile, setImportFile] = useState(null);
+    const [importing, setImporting] = useState(false);
     
     // Dynamic pagination, table density & default sort from user settings (Point 5 & 6)
     const [perPage, setPerPage] = useState(() => {
@@ -311,6 +314,63 @@ export default function ProdukHome() {
         }
     };
 
+    const handleDownloadTemplate = () => {
+        const csvContent = "data:text/csv;charset=utf-8," 
+            + "nama_produk,kategori,pemasok,stok,stok_minimal,deskripsi\n"
+            + "Baterai AA Alkaline,Elektronik,PT Sumber Jaya,100,20,Baterai ukuran AA isi ulang\n"
+            + "Kertas HVS A4 80gr,Alat Tulis,CV Makmur Paper,50,10,Kertas fotokopi 1 rim\n"
+            + "Kabel HDMI 2 Meter,Elektronik,PT Elektronik Indo,30,5,Kabel HDMI 4K high speed\n";
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "template_import_produk.csv");
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+    };
+
+    const handleImportSubmit = async (e) => {
+        e.preventDefault();
+        if (!importFile) {
+            Swal.fire('Peringatan', 'Silakan pilih file CSV terlebih dahulu', 'warning');
+            return;
+        }
+
+        setImporting(true);
+        try {
+            const formData = new FormData();
+            formData.append('file', importFile);
+
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/produk/import', {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                },
+                body: formData,
+            });
+
+            const result = await res.json();
+            if (res.ok && result.success) {
+                Swal.fire({
+                    title: 'Berhasil!',
+                    text: result.message || `Berhasil mengimpor ${result.data?.total_imported} produk.`,
+                    icon: 'success',
+                });
+                setShowImportModal(false);
+                setImportFile(null);
+                fetchProduk();
+            } else {
+                Swal.fire('Gagal Import', result.message || 'Terjadi kesalahan saat memproses data.', 'error');
+            }
+        } catch (error) {
+            console.error('Import error:', error);
+            Swal.fire('Error', 'Gagal memproses file import', 'error');
+        } finally {
+            setImporting(false);
+        }
+    };
+
     if (loading) {
         return (
             <div className="flex items-center justify-center min-h-[50vh] text-sm text-gray-500">
@@ -327,12 +387,20 @@ export default function ProdukHome() {
                     <h1 className="text-xl font-bold text-gray-900 dark:text-white">Manajemen Produk</h1>
                     <p className="text-xs text-gray-500 dark:text-gray-400">Kelola data produk inventory</p>
                 </div>
-                <Link
-                    to="/Produk/Create"
-                    className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
-                >
-                    <Plus className="w-4 h-4" /> Tambah Produk
-                </Link>
+                <div className="flex items-center gap-2">
+                    <button
+                        onClick={() => setShowImportModal(true)}
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors cursor-pointer shadow-xs"
+                    >
+                        <Upload className="w-4 h-4" /> Import Excel
+                    </button>
+                    <Link
+                        to="/Produk/Create"
+                        className="inline-flex items-center justify-center gap-2 px-3 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-lg transition-colors"
+                    >
+                        <Plus className="w-4 h-4" /> Tambah Produk
+                    </Link>
+                </div>
             </div>
 
             {/* Input Search */}
@@ -556,6 +624,81 @@ export default function ProdukHome() {
                                 Tutup
                             </button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* Modal Import Produk Massal */}
+            {showImportModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-lg w-full border border-gray-100 dark:border-gray-800 overflow-hidden">
+                        {/* Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+                            <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                                <FileSpreadsheet className="w-5 h-5 text-emerald-600" />
+                                <span>Import Massal Produk (CSV / Excel)</span>
+                            </div>
+                            <button
+                                onClick={() => setShowImportModal(false)}
+                                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Body */}
+                        <form onSubmit={handleImportSubmit} className="p-6 space-y-4 text-xs">
+                            <div className="p-3 bg-emerald-50/70 dark:bg-emerald-950/30 border border-emerald-200 dark:border-emerald-800/40 rounded-xl space-y-2">
+                                <p className="font-semibold text-emerald-800 dark:text-emerald-300 flex items-center gap-1.5">
+                                    <FileSpreadsheet className="w-4 h-4" />
+                                    Format File Diperlukan
+                                </p>
+                                <p className="text-gray-600 dark:text-gray-400 leading-relaxed">
+                                    Pastikan file berformat <strong>.CSV</strong> dengan kolom berikut: <br />
+                                    <code className="text-[11px] font-mono bg-white dark:bg-gray-800 px-1 py-0.5 rounded border mt-1 inline-block">
+                                        nama_produk, kategori, pemasok, stok, stok_minimal, deskripsi
+                                    </code>
+                                </p>
+                                <button
+                                    type="button"
+                                    onClick={handleDownloadTemplate}
+                                    className="inline-flex items-center gap-1.5 text-xs text-emerald-700 dark:text-emerald-400 font-bold hover:underline cursor-pointer"
+                                >
+                                    <Download className="w-3.5 h-3.5" /> Unduh Template CSV Contoh
+                                </button>
+                            </div>
+
+                            <div className="space-y-1.5">
+                                <label className="block font-semibold text-gray-700 dark:text-gray-300">
+                                    Pilih File CSV / Excel (.csv) <span className="text-red-500">*</span>
+                                </label>
+                                <input
+                                    type="file"
+                                    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+                                    required
+                                    onChange={(e) => setImportFile(e.target.files[0])}
+                                    className="w-full text-xs text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-emerald-50 file:text-emerald-700 hover:file:bg-emerald-100 dark:file:bg-emerald-950 dark:file:text-emerald-300 file:cursor-pointer border border-gray-200 dark:border-gray-700 rounded-xl p-2 bg-gray-50 dark:bg-gray-800"
+                                />
+                            </div>
+
+                            <div className="flex items-center justify-end gap-2 pt-4 border-t border-gray-100 dark:border-gray-800">
+                                <button
+                                    type="button"
+                                    onClick={() => setShowImportModal(false)}
+                                    className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl transition-colors cursor-pointer"
+                                >
+                                    Batal
+                                </button>
+                                <button
+                                    type="submit"
+                                    disabled={importing}
+                                    className="inline-flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-xs font-semibold rounded-xl shadow-md transition-all cursor-pointer"
+                                >
+                                    <Upload className="w-3.5 h-3.5" />
+                                    <span>{importing ? 'Mengimpor...' : 'Mulai Import'}</span>
+                                </button>
+                            </div>
+                        </form>
                     </div>
                 </div>
             )}

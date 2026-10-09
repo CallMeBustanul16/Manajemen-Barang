@@ -2,7 +2,7 @@ import React from 'react';
 import { NavLink } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import {
-    LayoutDashboard, Package, Tag, Truck, ArrowLeftRight, LayoutGrid, BarChart3, LogOut
+    LayoutDashboard, Package, Tag, Truck, ArrowLeftRight, ClipboardCheck, LayoutGrid, BarChart3, History, LogOut
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
@@ -15,8 +15,10 @@ export default function Sidebar({ isOpen, onClose, darkMode }) {
         { path: '/kategori', icon: Tag, label: t('categories') },
         { path: '/pemasok', icon: Truck, label: t('suppliers') },
         { path: '/stok', icon: ArrowLeftRight, label: t('stockInOut') },
+        { path: '/stok/opname', icon: ClipboardCheck, label: t('stockOpname') },
         { path: '/batch', icon: LayoutGrid, label: t('batch') },
         { path: '/laporan', icon: BarChart3, label: t('reports') },
+        { path: '/audit-log', icon: History, label: t('auditLog') },
     ];
 
     const handleLogout = () => {

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import {
     Plus, Search, ChevronLeft, ChevronRight, Package,
-    ArrowUp, ArrowDown, RefreshCw, Filter, X, Download
+    ArrowUp, ArrowDown, RefreshCw, Filter, X, Download, Printer, Scale
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { formatDateByPreference } from '../../lib/formatters';
@@ -20,6 +20,7 @@ export default function StokIndex() {
     const [totalItems, setTotalItems] = useState(0);
     const [lastUpdated, setLastUpdated] = useState(null);
     const [showMobileFilter, setShowMobileFilter] = useState(false);
+    const [printModalData, setPrintModalData] = useState(null);
     // Dynamic pagination & date format from user settings (Point 4 & 5)
     const [perPage, setPerPage] = useState(() => {
         try {
@@ -217,6 +218,14 @@ export default function StokIndex() {
                     </button>
 
                     <Link
+                        to="/stok/opname"
+                        className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white text-xs font-semibold rounded-lg transition-colors shadow-xs"
+                    >
+                        <Scale className="w-3.5 h-3.5" />
+                        <span>Stock Opname</span>
+                    </Link>
+
+                    <Link
                         to="/stok/masuk"
                         className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold rounded-lg transition-colors"
                     >
@@ -343,11 +352,13 @@ export default function StokIndex() {
                                         <th className="px-4 py-3">Perubahan Stok</th>
                                         <th className="px-4 py-3">User</th>
                                         <th className="px-4 py-3">Tanggal</th>
+                                        <th className="px-4 py-3 text-center">Aksi</th>
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                                     {filteredData.map((item, index) => {
                                         const isMasuk = item.tipe === 'masuk';
+                                        const isOpname = item.tipe === 'penyesuaian';
                                         return (
                                             <tr key={item.id} className="hover:bg-gray-50 dark:hover:bg-gray-700/30">
                                                 <td className="px-4 py-3 text-gray-500">{(currentPage - 1) * perPage + index + 1}</td>
@@ -356,9 +367,15 @@ export default function StokIndex() {
                                                     <div className="text-[11px] text-gray-400">SKU: {item.produk?.sku || '-'}</div>
                                                 </td>
                                                 <td className="px-4 py-3">
-                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${isMasuk ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'}`}>
-                                                        {isMasuk ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                                        {isMasuk ? 'Masuk' : 'Keluar'}
+                                                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold ${
+                                                        isMasuk 
+                                                            ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                                                            : isOpname
+                                                            ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                                            : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+                                                    }`}>
+                                                        {isMasuk ? <ArrowUp className="w-3 h-3" /> : isOpname ? <Scale className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                                        {isMasuk ? 'Masuk' : isOpname ? 'Penyesuaian' : 'Keluar'}
                                                     </span>
                                                 </td>
                                                 <td className="px-4 py-3 text-center font-bold font-mono text-gray-900 dark:text-white">{item.jumlah}</td>
@@ -367,9 +384,11 @@ export default function StokIndex() {
                                                         <span className={`text-[10px] px-1.5 py-0.5 rounded ${
                                                             isMasuk 
                                                                 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' 
+                                                                : isOpname
+                                                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-400'
                                                                 : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'
                                                         }`}>
-                                                            {isMasuk ? 'Batch' : 'Batch'}
+                                                            {item.batch_id ? `Batch #${item.batch_id}` : 'Gudang'}
                                                         </span>
                                                         <span className="text-gray-400">{item.stok_sebelum}</span>
                                                         <span className="mx-1 text-gray-400">→</span>
@@ -380,6 +399,15 @@ export default function StokIndex() {
                                                 <td className="px-4 py-3 text-gray-600 dark:text-gray-300">{item.user?.name || '-'}</td>
                                                 <td className="px-4 py-3 text-gray-400">
                                                     {item.tanggal ? formatDateByPreference(item.tanggal, dateFormat, true) : '-'}
+                                                </td>
+                                                <td className="px-4 py-3 text-center">
+                                                    <button
+                                                        onClick={() => setPrintModalData(item)}
+                                                        className="p-1.5 text-gray-500 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg transition-colors cursor-pointer"
+                                                        title="Cetak Bukti / Surat Jalan"
+                                                    >
+                                                        <Printer className="w-4 h-4" />
+                                                    </button>
                                                 </td>
                                             </tr>
                                         );
@@ -392,6 +420,7 @@ export default function StokIndex() {
                         <div className="md:hidden divide-y divide-gray-200 dark:divide-gray-700">
                             {filteredData.map((item) => {
                                 const isMasuk = item.tipe === 'masuk';
+                                const isOpname = item.tipe === 'penyesuaian';
                                 return (
                                     <div key={item.id} className="p-3 space-y-2 text-xs">
                                         <div className="flex justify-between items-start">
@@ -399,10 +428,25 @@ export default function StokIndex() {
                                                 <p className="font-semibold text-gray-900 dark:text-white truncate">{item.produk?.nama_produk || '-'}</p>
                                                 <p className="text-[11px] text-gray-400">SKU: {item.produk?.sku || '-'}</p>
                                             </div>
-                                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold flex-shrink-0 ${isMasuk ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'}`}>
-                                                {isMasuk ? <ArrowUp className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
-                                                {isMasuk ? 'Masuk' : 'Keluar'}
-                                            </span>
+                                            <div className="flex items-center gap-1.5">
+                                                <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold flex-shrink-0 ${
+                                                    isMasuk 
+                                                        ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400' 
+                                                        : isOpname
+                                                        ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-400'
+                                                        : 'bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-400'
+                                                }`}>
+                                                    {isMasuk ? <ArrowUp className="w-3 h-3" /> : isOpname ? <Scale className="w-3 h-3" /> : <ArrowDown className="w-3 h-3" />}
+                                                    {isMasuk ? 'Masuk' : isOpname ? 'Opname' : 'Keluar'}
+                                                </span>
+                                                <button
+                                                    onClick={() => setPrintModalData(item)}
+                                                    className="p-1 text-gray-500 hover:text-red-600 rounded bg-gray-50 dark:bg-gray-800"
+                                                    title="Cetak Bukti"
+                                                >
+                                                    <Printer className="w-3.5 h-3.5" />
+                                                </button>
+                                            </div>
                                         </div>
 
                                         <div className="grid grid-cols-3 gap-2 pt-1 border-t border-gray-100 dark:border-gray-700/50">
@@ -458,6 +502,184 @@ export default function StokIndex() {
             <div className="text-center text-[11px] text-gray-400">
                 Total: {totalItems} transaksi • Update: {lastUpdated ? lastUpdated.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }) : '-'}
             </div>
+
+            {/* MODAL CETAK BUKTI / SURAT JALAN / SLIP TRANSAKSI */}
+            {printModalData && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-xs animate-in fade-in">
+                    <div className="bg-white dark:bg-gray-900 rounded-2xl shadow-2xl max-w-2xl w-full border border-gray-100 dark:border-gray-800 overflow-hidden flex flex-col max-h-[90vh]">
+                        {/* Modal Header */}
+                        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100 dark:border-gray-800 bg-gray-50/50 dark:bg-gray-800/50">
+                            <div className="flex items-center gap-2 text-sm font-bold text-gray-900 dark:text-white">
+                                <Printer className="w-4 h-4 text-red-600" />
+                                <span>Pratinjau Dokumen Transaksi Resmi</span>
+                            </div>
+                            <button
+                                onClick={() => setPrintModalData(null)}
+                                className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer"
+                            >
+                                <X className="w-5 h-5" />
+                            </button>
+                        </div>
+
+                        {/* Printable Area */}
+                        <div id="printable-receipt" className="p-6 overflow-y-auto flex-1 bg-white text-gray-900 space-y-6">
+                            {/* Kop Surat */}
+                            <div className="flex justify-between items-start border-b-2 border-gray-800 pb-4">
+                                <div>
+                                    <h2 className="text-xl font-black tracking-tight text-gray-900 uppercase">
+                                        Sistem Manajemen Inventaris
+                                    </h2>
+                                    <p className="text-xs text-gray-500 mt-0.5">
+                                        Divisi Pergudangan & Logistik • Bukti Transaksi Resmi
+                                    </p>
+                                    <p className="text-[11px] text-gray-400">
+                                        Dicetak pada: {new Date().toLocaleString('id-ID')}
+                                    </p>
+                                </div>
+                                <div className="text-right">
+                                    <span className={`inline-block px-3 py-1 rounded text-xs font-black uppercase tracking-wider ${
+                                        printModalData.tipe === 'masuk'
+                                            ? 'bg-emerald-100 text-emerald-900 border border-emerald-300'
+                                            : printModalData.tipe === 'penyesuaian'
+                                            ? 'bg-amber-100 text-amber-900 border border-amber-300'
+                                            : 'bg-rose-100 text-rose-900 border border-rose-300'
+                                    }`}>
+                                        {printModalData.tipe === 'masuk'
+                                            ? 'SURAT BUKTI PENERIMAAN'
+                                            : printModalData.tipe === 'penyesuaian'
+                                            ? 'BERITA ACARA STOCK OPNAME'
+                                            : 'SURAT JALAN PENGELUARAN'}
+                                    </span>
+                                    <p className="text-xs font-mono font-bold mt-1 text-gray-700">
+                                        NO: TRX-{String(printModalData.id).padStart(6, '0')}
+                                    </p>
+                                </div>
+                            </div>
+
+                            {/* Info Meta Transaksi */}
+                            <div className="grid grid-cols-2 gap-4 text-xs bg-gray-50 p-3 rounded-lg border border-gray-200">
+                                <div>
+                                    <span className="text-gray-500 block">Tanggal Transaksi:</span>
+                                    <span className="font-semibold text-gray-900">
+                                        {formatDateByPreference(printModalData.tanggal, dateFormat, true)}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500 block">Petugas / Operator:</span>
+                                    <span className="font-semibold text-gray-900">
+                                        {printModalData.user?.name || 'Administrator'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500 block">Batch / Lokasi Rak:</span>
+                                    <span className="font-semibold text-gray-900">
+                                        {printModalData.batch_id ? `Batch #${printModalData.batch_id} (Rak: ${printModalData.batch?.lokasi_rak || '-'})` : 'Gudang Utama'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-gray-500 block">Jenis Mutasi:</span>
+                                    <span className="font-semibold text-gray-900 uppercase">
+                                        {printModalData.tipe} ({printModalData.jumlah} Unit)
+                                    </span>
+                                </div>
+                            </div>
+
+                            {/* Tabel Barang */}
+                            <table className="w-full text-xs text-left border-collapse border border-gray-300">
+                                <thead className="bg-gray-100 text-gray-700 uppercase text-[10px] font-bold">
+                                    <tr>
+                                        <th className="border border-gray-300 p-2">Item Produk</th>
+                                        <th className="border border-gray-300 p-2">SKU</th>
+                                        <th className="border border-gray-300 p-2 text-center">Stok Sebelum</th>
+                                        <th className="border border-gray-300 p-2 text-center">Mutasi</th>
+                                        <th className="border border-gray-300 p-2 text-center">Stok Sesudah</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr>
+                                        <td className="border border-gray-300 p-2 font-bold text-gray-900">
+                                            {printModalData.produk?.nama_produk || '-'}
+                                        </td>
+                                        <td className="border border-gray-300 p-2 font-mono">
+                                            {printModalData.produk?.sku || '-'}
+                                        </td>
+                                        <td className="border border-gray-300 p-2 text-center font-mono">
+                                            {printModalData.stok_sebelum}
+                                        </td>
+                                        <td className="border border-gray-300 p-2 text-center font-mono font-bold">
+                                            {printModalData.tipe === 'masuk' ? `+${printModalData.jumlah}` : printModalData.tipe === 'penyesuaian' ? `±${printModalData.jumlah}` : `-${printModalData.jumlah}`}
+                                        </td>
+                                        <td className="border border-gray-300 p-2 text-center font-mono font-bold text-gray-900">
+                                            {printModalData.stok_sesudah}
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+
+                            {/* Catatan */}
+                            {printModalData.catatan && (
+                                <div className="text-xs p-2.5 rounded bg-gray-50 border border-gray-200">
+                                    <span className="font-bold text-gray-700">Keterangan / Catatan:</span>
+                                    <p className="text-gray-600 mt-0.5 italic">{printModalData.catatan}</p>
+                                </div>
+                            )}
+
+                            {/* Kolom Tanda Tangan */}
+                            <div className="grid grid-cols-3 gap-4 pt-8 text-center text-xs">
+                                <div>
+                                    <p className="text-gray-500 mb-12">Diserahkan Oleh,</p>
+                                    <p className="font-bold text-gray-900 border-t border-gray-300 pt-1 mx-2">( ......................... )</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 mb-12">Diterima Oleh,</p>
+                                    <p className="font-bold text-gray-900 border-t border-gray-300 pt-1 mx-2">( ......................... )</p>
+                                </div>
+                                <div>
+                                    <p className="text-gray-500 mb-12">Petugas Gudang,</p>
+                                    <p className="font-bold text-gray-900 border-t border-gray-300 pt-1 mx-2">( {printModalData.user?.name || 'Administrator'} )</p>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="flex items-center justify-end gap-2 px-6 py-3 border-t border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800/50">
+                            <button
+                                onClick={() => setPrintModalData(null)}
+                                className="px-4 py-2 text-xs font-semibold text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
+                            >
+                                Tutup
+                            </button>
+                            <button
+                                onClick={() => {
+                                    const printContent = document.getElementById('printable-receipt');
+                                    const win = window.open('', '', 'width=800,height=600');
+                                    win.document.write(`
+                                        <html>
+                                            <head>
+                                                <title>Cetak Transaksi #${printModalData.id}</title>
+                                                <script src="https://cdn.tailwindcss.com"></script>
+                                                <style>
+                                                    @media print {
+                                                        body { margin: 0; padding: 20px; }
+                                                    }
+                                                </style>
+                                            </head>
+                                            <body onload="window.print(); window.close();">
+                                                ${printContent.innerHTML}
+                                            </body>
+                                        </html>
+                                    `);
+                                    win.document.close();
+                                }}
+                                className="inline-flex items-center gap-1.5 px-4 py-2 bg-red-600 hover:bg-red-700 text-white text-xs font-semibold rounded-xl transition-all cursor-pointer shadow-md"
+                            >
+                                <Printer className="w-3.5 h-3.5" />
+                                <span>Cetak Sekarang</span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
         </div>
     );
 }

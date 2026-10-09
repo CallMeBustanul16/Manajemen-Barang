@@ -1,6 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Menu, X, Search, Bell, Moon, Sun, Compass, BookOpen, LogOut, ChevronDown, Check, User, Settings } from 'lucide-react';
+import { 
+    Menu, X, Search, Bell, Moon, Sun, Compass, BookOpen, LogOut, ChevronDown, Check, User, Settings,
+    LayoutDashboard, Package, Tag, Truck, ArrowLeftRight, ClipboardCheck, LayoutGrid, BarChart3,
+    History, QrCode, PlusCircle, ArrowDownToLine, ArrowUpFromLine, CornerDownLeft, Sparkles, Box
+} from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 import { gunakanDarkMode } from '../../context/DarkModeContext';
 import { playNotificationChime } from '../../lib/sound';
@@ -18,6 +22,15 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
 
     const [notifications, setNotifications] = useState([]);
     const [unreadCount, setUnreadCount] = useState(0);
+
+    // Command Palette / Global Search State (Ctrl + K)
+    const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
+    const [commandSearch, setCommandSearch] = useState('');
+    const [quickProducts, setQuickProducts] = useState([]);
+    const [quickBatches, setQuickBatches] = useState([]);
+    const [loadingQuickData, setLoadingQuickData] = useState(false);
+    const [selectedIndex, setSelectedIndex] = useState(0);
+    const commandInputRef = useRef(null);
 
     const loadUserData = () => {
         const userData = localStorage.getItem('user');
@@ -51,6 +64,61 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
             })
             .catch(err => console.error('Error fetching profile:', err));
     };
+
+    // Keyboard shortcut listener for Ctrl + K and /
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === 'k') {
+                e.preventDefault();
+                setCommandPaletteOpen(prev => !prev);
+            } else if (e.key === '/' && !['INPUT', 'TEXTAREA'].includes(document.activeElement?.tagName)) {
+                e.preventDefault();
+                setCommandPaletteOpen(true);
+            } else if (e.key === 'Escape' && commandPaletteOpen) {
+                setCommandPaletteOpen(false);
+            }
+        };
+
+        window.addEventListener('keydown', handleKeyDown);
+        return () => window.removeEventListener('keydown', handleKeyDown);
+    }, [commandPaletteOpen]);
+
+    // Auto-focus input when Command Palette opens & fetch live search items
+    useEffect(() => {
+        if (commandPaletteOpen) {
+            setCommandSearch('');
+            setSelectedIndex(0);
+            setTimeout(() => commandInputRef.current?.focus(), 50);
+
+            // Fetch products and batches once for instant fast searching
+            const fetchQuickData = async () => {
+                setLoadingQuickData(true);
+                try {
+                    const token = localStorage.getItem('token');
+                    const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
+                    const [prodRes, batchRes] = await Promise.allSettled([
+                        fetch('/api/produk?per_page=100', { headers }),
+                        fetch('/api/batch?per_page=50', { headers })
+                    ]);
+                    if (prodRes.status === 'fulfilled' && prodRes.value.ok) {
+                        const pj = await prodRes.value.json();
+                        const pItems = Array.isArray(pj.data?.data) ? pj.data.data : (Array.isArray(pj.data) ? pj.data : []);
+                        setQuickProducts(pItems);
+                    }
+                    if (batchRes.status === 'fulfilled' && batchRes.value.ok) {
+                        const bj = await batchRes.value.json();
+                        const bItems = Array.isArray(bj.data?.data) ? bj.data.data : (Array.isArray(bj.data) ? bj.data : []);
+                        setQuickBatches(bItems);
+                    }
+                } catch (err) {
+                    console.error('Failed to load quick search data:', err);
+                } finally {
+                    setLoadingQuickData(false);
+                }
+            };
+            fetchQuickData();
+        }
+    }, [commandPaletteOpen]);
 
     useEffect(() => {
         loadUserData();
@@ -157,21 +225,42 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                         {isSidebarOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
                     </button>
 
-                    {/* Search Bar pill shape */}
-                    <div className="relative w-full max-w-md hidden sm:block">
-                        <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none">
-                            <Search className="w-4 h-4 text-gray-400" />
+                    {/* Search Bar pill shape / Command Palette Trigger (Ctrl + K) */}
+                    <div 
+                        onClick={() => setCommandPaletteOpen(true)}
+                        className={`relative w-full max-w-md hidden sm:flex items-center justify-between px-3.5 py-2.5 rounded-full cursor-pointer transition-all duration-200 select-none group border ${
+                            darkMode 
+                                ? 'bg-gray-800/90 hover:bg-gray-800 text-gray-400 hover:text-gray-200 border-gray-700/60 hover:border-gray-600' 
+                                : 'bg-[#f1f3f9] hover:bg-[#ebf0f8] text-gray-400 hover:text-gray-700 border-transparent hover:border-gray-200 shadow-inner'
+                        }`}
+                        title="Buka Command Palette (Ctrl + K)"
+                    >
+                        <div className="flex items-center gap-2.5 min-w-0">
+                            <Search className="w-4 h-4 text-gray-400 group-hover:text-red-500 transition-colors flex-shrink-0" />
+                            <span className="text-xs truncate">
+                                {t('searchPlaceholder') || 'Cari cepat produk, batch, halaman...'}
+                            </span>
                         </div>
-                        <input
-                            type="text"
-                            placeholder={t('searchPlaceholder')}
-                            className={`w-full pl-10 pr-4 py-2.5 rounded-full text-xs font-normal border-none transition-all outline-none ${
-                                darkMode 
-                                    ? 'bg-gray-800 text-gray-200 placeholder-gray-500 focus:ring-2 focus:ring-red-500/40' 
-                                    : 'bg-[#f1f3f9] text-gray-700 placeholder-gray-400 focus:bg-white focus:ring-2 focus:ring-red-500/20 shadow-inner'
-                            }`}
-                        />
+                        <div className="flex items-center gap-1 flex-shrink-0 pl-2">
+                            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 shadow-2xs">
+                                Ctrl
+                            </kbd>
+                            <kbd className="px-1.5 py-0.5 text-[10px] font-mono font-semibold rounded bg-white dark:bg-gray-900 text-gray-500 dark:text-gray-400 border border-gray-200 dark:border-gray-700 shadow-2xs">
+                                K
+                            </kbd>
+                        </div>
                     </div>
+
+                    {/* Mobile Search Button */}
+                    <button
+                        onClick={() => setCommandPaletteOpen(true)}
+                        className={`sm:hidden p-2 rounded-xl transition-colors ${
+                            darkMode ? 'hover:bg-gray-800 text-gray-300' : 'hover:bg-gray-100 text-gray-600'
+                        }`}
+                        title="Cari Cepat (Ctrl + K)"
+                    >
+                        <Search className="w-5 h-5" />
+                    </button>
                 </div>
 
                 {/* Right: Notifications & User Profile */}
@@ -384,6 +473,236 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
 
                 </div>
             </div>
+
+            {/* Global Search / Command Palette Modal (Ctrl + K) */}
+            {commandPaletteOpen && (
+                <div 
+                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-16 sm:pt-24 px-4 overflow-y-auto animate-in fade-in duration-150"
+                    onClick={() => setCommandPaletteOpen(false)}
+                >
+                    <div 
+                        className={`w-full max-w-2xl rounded-2xl shadow-2xl border overflow-hidden transition-all duration-200 animate-in zoom-in-95 ${
+                            darkMode ? 'bg-gray-900 border-gray-700 text-white' : 'bg-white border-gray-200 text-gray-800'
+                        }`}
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Search Input Box */}
+                        <div className={`flex items-center px-4 py-3.5 border-b ${
+                            darkMode ? 'border-gray-800 bg-gray-900/90' : 'border-gray-100 bg-gray-50/70'
+                        }`}>
+                            <Search className="w-5 h-5 text-red-500 mr-3 flex-shrink-0" />
+                            <input
+                                ref={commandInputRef}
+                                type="text"
+                                value={commandSearch}
+                                onChange={(e) => {
+                                    setCommandSearch(e.target.value);
+                                    setSelectedIndex(0);
+                                }}
+                                onKeyDown={(e) => {
+                                    const navList = [
+                                        { label: 'Tambah Produk Baru', path: '/produk/Create', icon: PlusCircle, category: 'Aksi Cepat', hint: 'Input master data barang' },
+                                        { label: 'Catat Stok Masuk', path: '/stok/Masuk', icon: ArrowDownToLine, category: 'Aksi Cepat', hint: 'Penerimaan barang masuk' },
+                                        { label: 'Catat Stok Keluar', path: '/stok/Keluar', icon: ArrowUpFromLine, category: 'Aksi Cepat', hint: 'Pengeluaran/distribusi barang' },
+                                        { label: 'Stock Opname / Penyesuaian', path: '/stok/opname', icon: ClipboardCheck, category: 'Aksi Cepat', hint: 'Sinkronisasi fisik vs sistem' },
+                                        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, category: 'Navigasi' },
+                                        { label: 'Master Produk', path: '/produk', icon: Package, category: 'Navigasi' },
+                                        { label: 'Kategori Barang', path: '/kategori', icon: Tag, category: 'Navigasi' },
+                                        { label: 'Daftar Pemasok', path: '/pemasok', icon: Truck, category: 'Navigasi' },
+                                        { label: 'Riwayat Stok Masuk/Keluar', path: '/stok', icon: ArrowLeftRight, category: 'Navigasi' },
+                                        { label: 'Batch Inventaris & FEFO', path: '/batch', icon: LayoutGrid, category: 'Navigasi' },
+                                        { label: 'Scanner QR Code', path: '/scan', icon: QrCode, category: 'Navigasi' },
+                                        { label: 'Laporan Inventaris', path: '/laporan', icon: BarChart3, category: 'Navigasi' },
+                                        { label: 'Riwayat Audit & Aktivitas', path: '/audit-log', icon: History, category: 'Navigasi' },
+                                        { label: 'Pengaturan', path: '/pengaturan', icon: Settings, category: 'Navigasi' },
+                                        { label: 'Profil Saya', path: '/profil', icon: User, category: 'Navigasi' },
+                                    ];
+                                    const q = commandSearch.toLowerCase().trim();
+                                    const matchActions = navList.filter(item => 
+                                        !q || item.label.toLowerCase().includes(q) || (item.hint && item.hint.toLowerCase().includes(q))
+                                    );
+                                    const matchProds = quickProducts.filter(p => 
+                                        q && (p.nama_produk?.toLowerCase().includes(q) || p.kode_produk?.toLowerCase().includes(q))
+                                    ).slice(0, 5).map(p => ({
+                                        label: p.nama_produk,
+                                        path: `/produk/Edit/${p.id}`,
+                                        icon: Box,
+                                        category: 'Produk',
+                                        hint: `SKU: ${p.kode_produk || '-'} | Stok: ${p.stok || 0}`
+                                    }));
+                                    const matchBatches = quickBatches.filter(b => 
+                                        q && (b.qr_code?.toLowerCase().includes(q) || b.lokasi_rak?.toLowerCase().includes(q) || b.produk?.nama_produk?.toLowerCase().includes(q))
+                                    ).slice(0, 3).map(b => ({
+                                        label: `Batch ${b.qr_code}`,
+                                        path: `/batch`,
+                                        icon: LayoutGrid,
+                                        category: 'Batch',
+                                        hint: `${b.produk?.nama_produk || ''} | Rak: ${b.lokasi_rak || '-'}`
+                                    }));
+                                    const combined = [...matchActions, ...matchProds, ...matchBatches];
+
+                                    if (e.key === 'ArrowDown') {
+                                        e.preventDefault();
+                                        setSelectedIndex(prev => (prev + 1) % Math.max(1, combined.length));
+                                    } else if (e.key === 'ArrowUp') {
+                                        e.preventDefault();
+                                        setSelectedIndex(prev => (prev - 1 + combined.length) % Math.max(1, combined.length));
+                                    } else if (e.key === 'Enter') {
+                                        e.preventDefault();
+                                        if (combined[selectedIndex]) {
+                                            setCommandPaletteOpen(false);
+                                            navigate(combined[selectedIndex].path);
+                                        }
+                                    }
+                                }}
+                                placeholder="Ketik apa saja untuk mencari... (contoh: opname, laporan, baut, BATCH-01)"
+                                className="w-full bg-transparent text-sm sm:text-base outline-none placeholder-gray-400 dark:placeholder-gray-500"
+                            />
+                            {commandSearch ? (
+                                <button
+                                    onClick={() => setCommandSearch('')}
+                                    className="p-1 rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 text-xs"
+                                >
+                                    <X className="w-4 h-4" />
+                                </button>
+                            ) : null}
+                            <kbd className="ml-2 px-2 py-0.5 text-[10px] font-mono font-semibold rounded bg-gray-200 dark:bg-gray-800 text-gray-500 dark:text-gray-400 border border-gray-300 dark:border-gray-700">
+                                ESC
+                            </kbd>
+                        </div>
+
+                        {/* Search Results List */}
+                        <div className="max-h-[380px] overflow-y-auto p-2 space-y-1">
+                            {(() => {
+                                const navList = [
+                                    { label: 'Tambah Produk Baru', path: '/produk/Create', icon: PlusCircle, category: 'Aksi Cepat', hint: 'Input master data barang' },
+                                    { label: 'Catat Stok Masuk', path: '/stok/Masuk', icon: ArrowDownToLine, category: 'Aksi Cepat', hint: 'Penerimaan barang masuk' },
+                                    { label: 'Catat Stok Keluar', path: '/stok/Keluar', icon: ArrowUpFromLine, category: 'Aksi Cepat', hint: 'Pengeluaran/distribusi barang' },
+                                    { label: 'Stock Opname / Penyesuaian', path: '/stok/opname', icon: ClipboardCheck, category: 'Aksi Cepat', hint: 'Sinkronisasi fisik vs sistem' },
+                                    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, category: 'Navigasi' },
+                                    { label: 'Master Produk', path: '/produk', icon: Package, category: 'Navigasi' },
+                                    { label: 'Kategori Barang', path: '/kategori', icon: Tag, category: 'Navigasi' },
+                                    { label: 'Daftar Pemasok', path: '/pemasok', icon: Truck, category: 'Navigasi' },
+                                    { label: 'Riwayat Stok Masuk/Keluar', path: '/stok', icon: ArrowLeftRight, category: 'Navigasi' },
+                                    { label: 'Batch Inventaris & FEFO', path: '/batch', icon: LayoutGrid, category: 'Navigasi' },
+                                    { label: 'Scanner QR Code', path: '/scan', icon: QrCode, category: 'Navigasi' },
+                                    { label: 'Laporan Inventaris', path: '/laporan', icon: BarChart3, category: 'Navigasi' },
+                                    { label: 'Riwayat Audit & Aktivitas', path: '/audit-log', icon: History, category: 'Navigasi' },
+                                    { label: 'Pengaturan', path: '/pengaturan', icon: Settings, category: 'Navigasi' },
+                                    { label: 'Profil Saya', path: '/profil', icon: User, category: 'Navigasi' },
+                                ];
+                                const q = commandSearch.toLowerCase().trim();
+                                const matchActions = navList.filter(item => 
+                                    !q || item.label.toLowerCase().includes(q) || (item.hint && item.hint.toLowerCase().includes(q))
+                                );
+                                const matchProds = quickProducts.filter(p => 
+                                    q && (p.nama_produk?.toLowerCase().includes(q) || p.kode_produk?.toLowerCase().includes(q))
+                                ).slice(0, 5).map(p => ({
+                                    label: p.nama_produk,
+                                    path: `/produk/Edit/${p.id}`,
+                                    icon: Box,
+                                    category: 'Produk',
+                                    hint: `SKU: ${p.kode_produk || '-'} | Stok: ${p.stok || 0}`
+                                }));
+                                const matchBatches = quickBatches.filter(b => 
+                                    q && (b.qr_code?.toLowerCase().includes(q) || b.lokasi_rak?.toLowerCase().includes(q) || b.produk?.nama_produk?.toLowerCase().includes(q))
+                                ).slice(0, 3).map(b => ({
+                                    label: `Batch ${b.qr_code}`,
+                                    path: `/batch`,
+                                    icon: LayoutGrid,
+                                    category: 'Batch',
+                                    hint: `${b.produk?.nama_produk || ''} | Rak: ${b.lokasi_rak || '-'}`
+                                }));
+
+                                const items = [...matchActions, ...matchProds, ...matchBatches];
+
+                                if (items.length === 0) {
+                                    return (
+                                        <div className="text-center py-8 text-gray-400">
+                                            <Search className="w-8 h-8 mx-auto mb-2 opacity-40 text-red-500" />
+                                            <p className="text-sm font-medium">Tidak ada hasil ditemukan untuk "{commandSearch}"</p>
+                                            <p className="text-xs text-gray-400 mt-1">Coba kata kunci lain seperti nama barang, nomor batch, atau nama menu.</p>
+                                        </div>
+                                    );
+                                }
+
+                                return items.map((item, idx) => {
+                                    const Icon = item.icon;
+                                    const isSelected = idx === selectedIndex;
+                                    return (
+                                        <div
+                                            key={idx}
+                                            onClick={() => {
+                                                setCommandPaletteOpen(false);
+                                                navigate(item.path);
+                                            }}
+                                            onMouseEnter={() => setSelectedIndex(idx)}
+                                            className={`flex items-center justify-between px-3.5 py-2.5 rounded-xl cursor-pointer transition-all duration-150 ${
+                                                isSelected 
+                                                    ? 'bg-red-600 text-white shadow-md shadow-red-950/20' 
+                                                    : darkMode 
+                                                    ? 'hover:bg-gray-800 text-gray-200' 
+                                                    : 'hover:bg-gray-100 text-gray-800'
+                                            }`}
+                                        >
+                                            <div className="flex items-center gap-3 min-w-0">
+                                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${
+                                                    isSelected 
+                                                        ? 'bg-white/20 text-white' 
+                                                        : darkMode 
+                                                        ? 'bg-gray-800 text-red-400 border border-gray-700' 
+                                                        : 'bg-red-50 text-red-600'
+                                                }`}>
+                                                    <Icon className="w-4 h-4" />
+                                                </div>
+                                                <div className="min-w-0">
+                                                    <p className="text-xs sm:text-sm font-bold truncate leading-tight">
+                                                        {item.label}
+                                                    </p>
+                                                    {item.hint && (
+                                                        <p className={`text-[11px] truncate leading-tight mt-0.5 ${
+                                                            isSelected ? 'text-white/80' : 'text-gray-400 dark:text-gray-500'
+                                                        }`}>
+                                                            {item.hint}
+                                                        </p>
+                                                    )}
+                                                </div>
+                                            </div>
+
+                                            <div className="flex items-center gap-2 flex-shrink-0 pl-2">
+                                                <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${
+                                                    isSelected 
+                                                        ? 'bg-white/20 text-white' 
+                                                        : darkMode 
+                                                        ? 'bg-gray-800 text-gray-400' 
+                                                        : 'bg-gray-100 text-gray-500'
+                                                }`}>
+                                                    {item.category}
+                                                </span>
+                                                {isSelected && (
+                                                    <CornerDownLeft className="w-3.5 h-3.5 text-white/90" />
+                                                )}
+                                            </div>
+                                        </div>
+                                    );
+                                });
+                            })()}
+                        </div>
+
+                        {/* Footer Tips */}
+                        <div className={`px-4 py-2.5 border-t flex items-center justify-between text-[11px] ${
+                            darkMode ? 'border-gray-800 bg-gray-900/60 text-gray-400' : 'border-gray-100 bg-gray-50/80 text-gray-500'
+                        }`}>
+                            <div className="flex items-center gap-3">
+                                <span><kbd className="font-mono font-semibold">↑</kbd> <kbd className="font-mono font-semibold">↓</kbd> Navigasi</span>
+                                <span><kbd className="font-mono font-semibold">↵</kbd> Pilih</span>
+                                <span><kbd className="font-mono font-semibold">ESC</kbd> Tutup</span>
+                            </div>
+                            <span className="hidden sm:inline font-medium text-red-500">Shortcut Global (Ctrl+K)</span>
+                        </div>
+                    </div>
+                </div>
+            )}
         </header>
     );
 }

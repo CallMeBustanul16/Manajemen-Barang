@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { 
     Plus, Search, Edit, Trash2, Download, Package,
     ChevronLeft, ChevronRight, RefreshCw, History, Eye,
     Box, AlertTriangle, CheckCircle, XCircle,
+    Clock, ArrowUpFromLine, ShieldAlert,
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 
@@ -14,8 +15,26 @@ export default function BatchHome() {
     const [filterProduk, setFilterProduk] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
-    const [totalItems, setTotalItems] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
+
+    // Tab state (All, Expiring/FEFO, Expired, Empty)
+    const [searchParams, setSearchParams] = useSearchParams();
+    const [activeTab, setActiveTab] = useState(() => searchParams.get('tab') || 'all');
+    const [fefoDaysFilter, setFefoDaysFilter] = useState(30);
+
+    // Sync tab with URL query parameter
+    useEffect(() => {
+        const tabParam = searchParams.get('tab');
+        if (tabParam && ['all', 'expiring', 'expired', 'empty'].includes(tabParam)) {
+            setActiveTab(tabParam);
+        }
+    }, [searchParams]);
+
+    const handleTabChange = (tabKey) => {
+        setActiveTab(tabKey);
+        setCurrentPage(1);
+        setSearchParams(tabKey === 'all' ? {} : { tab: tabKey });
+    };
 
     // Dynamic settings preferences (Point 3 & Point 5)
     const [perPage, setPerPage] = useState(() => {
@@ -284,17 +303,75 @@ export default function BatchHome() {
         }
     };
 
-    // Optimasi Filter List menggunakan useMemo
-    const filteredData = batches.filter(item => {
-        const matchSearch =
-            item.produk?.nama_produk?.toLowerCase().includes(search.toLowerCase()) ||
-            item.qr_code?.toLowerCase().includes(search.toLowerCase()) ||
-            item.lokasi_rak?.toLowerCase().includes(search.toLowerCase());
+    // Hitung statistik batch untuk badge tab (Semua, FEFO Mendekati Expired, Expired, Kosong)
+    const batchStats = useMemo(() => {
+        let expiringCount = 0;
+        let expiredCount = 0;
+        let emptyCount = 0;
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
 
-        const matchProduk = !filterProduk || item.produk_id === parseInt(filterProduk);
+        batches.forEach(b => {
+            if (b.stok_saat_ini <= 0) emptyCount++;
+            if (b.tanggal_kadaluarsa) {
+                const exp = new Date(b.tanggal_kadaluarsa);
+                exp.setHours(0, 0, 0, 0);
+                const diff = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                if (diff < 0) {
+                    expiredCount++;
+                } else if (diff <= 30) {
+                    expiringCount++;
+                }
+            }
+        });
 
-        return matchSearch && matchProduk;
-    });
+        return { expiringCount, expiredCount, emptyCount, total: batches.length };
+    }, [batches]);
+
+    // Optimasi Filter List menggunakan useMemo & FEFO priority
+    const filteredData = useMemo(() => {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+
+        let list = batches.filter(item => {
+            const matchSearch =
+                item.produk?.nama_produk?.toLowerCase().includes(search.toLowerCase()) ||
+                item.qr_code?.toLowerCase().includes(search.toLowerCase()) ||
+                item.lokasi_rak?.toLowerCase().includes(search.toLowerCase());
+
+            const matchProduk = !filterProduk || item.produk_id === parseInt(filterProduk);
+            if (!matchSearch || !matchProduk) return false;
+
+            if (activeTab === 'expiring') {
+                if (!item.tanggal_kadaluarsa) return false;
+                const exp = new Date(item.tanggal_kadaluarsa);
+                exp.setHours(0, 0, 0, 0);
+                const diff = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                return diff >= 0 && diff <= fefoDaysFilter;
+            }
+
+            if (activeTab === 'expired') {
+                if (!item.tanggal_kadaluarsa) return false;
+                const exp = new Date(item.tanggal_kadaluarsa);
+                exp.setHours(0, 0, 0, 0);
+                const diff = Math.ceil((exp.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                return diff < 0;
+            }
+
+            if (activeTab === 'empty') {
+                return item.stok_saat_ini <= 0;
+            }
+
+            return true;
+        });
+
+        // Urutkan berdasarkan FEFO (First Expired, First Out) jika di tab expiring
+        if (activeTab === 'expiring') {
+            list.sort((a, b) => new Date(a.tanggal_kadaluarsa) - new Date(b.tanggal_kadaluarsa));
+        }
+
+        return list;
+    }, [batches, search, filterProduk, activeTab, fefoDaysFilter]);
 
     const paginatedData = filteredData.slice(
         (currentPage - 1) * perPage,
@@ -364,6 +441,135 @@ export default function BatchHome() {
                     </Link>
                 </div>
             </div>
+
+            {/* Tabs: Semua Batch, Mendekati Kadaluarsa (FEFO), Sudah Kadaluarsa, Stok Kosong */}
+            <div className="flex items-center gap-2 overflow-x-auto pb-1 border-b border-gray-200 dark:border-gray-700">
+                <button
+                    onClick={() => handleTabChange('all')}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'all'
+                            ? 'bg-blue-600 text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                >
+                    <Package className="w-4 h-4" />
+                    <span>Semua Batch</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] ${
+                        activeTab === 'all' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}>
+                        {batchStats.total}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => handleTabChange('expiring')}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'expiring'
+                            ? 'bg-amber-500 text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                >
+                    <Clock className="w-4 h-4" />
+                    <span>Mendekati Kadaluarsa (FEFO)</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        activeTab === 'expiring' 
+                            ? 'bg-white/25 text-white' 
+                            : batchStats.expiringCount > 0 
+                            ? 'bg-amber-100 dark:bg-amber-950/60 text-amber-700 dark:text-amber-400' 
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}>
+                        {batchStats.expiringCount}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => handleTabChange('expired')}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'expired'
+                            ? 'bg-red-600 text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                >
+                    <AlertTriangle className="w-4 h-4" />
+                    <span>Sudah Kadaluarsa</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${
+                        activeTab === 'expired' 
+                            ? 'bg-white/25 text-white' 
+                            : batchStats.expiredCount > 0 
+                            ? 'bg-red-100 dark:bg-red-950/60 text-red-700 dark:text-red-400' 
+                            : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}>
+                        {batchStats.expiredCount}
+                    </span>
+                </button>
+
+                <button
+                    onClick={() => handleTabChange('empty')}
+                    className={`flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold transition-all cursor-pointer whitespace-nowrap ${
+                        activeTab === 'empty'
+                            ? 'bg-gray-700 text-white shadow-sm'
+                            : 'text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                    }`}
+                >
+                    <XCircle className="w-4 h-4" />
+                    <span>Stok Kosong</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[11px] ${
+                        activeTab === 'empty' ? 'bg-white/20 text-white' : 'bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                    }`}>
+                        {batchStats.emptyCount}
+                    </span>
+                </button>
+            </div>
+
+            {/* FEFO Early Warning Banner (jika tab expiring) */}
+            {activeTab === 'expiring' && (
+                <div className="p-4 sm:p-5 rounded-2xl border bg-gradient-to-r from-amber-500/10 via-amber-500/5 to-transparent border-amber-200 dark:border-amber-900/60 flex flex-col md:flex-row md:items-center justify-between gap-4">
+                    <div className="flex items-start gap-3.5">
+                        <div className="w-10 h-10 rounded-xl bg-amber-500 text-white flex items-center justify-center flex-shrink-0 shadow-md shadow-amber-500/20">
+                            <Clock className="w-5 h-5" />
+                        </div>
+                        <div>
+                            <h3 className="text-sm sm:text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
+                                <span>Peringatan Dini FEFO (First Expired, First Out)</span>
+                                <span className="px-2 py-0.5 text-[11px] rounded bg-amber-500 text-white font-mono">
+                                    Prioritas Pengeluaran
+                                </span>
+                            </h3>
+                            <p className="text-xs text-gray-600 dark:text-gray-400 mt-1 max-w-2xl leading-relaxed">
+                                Batch diurutkan dari yang memiliki sisa masa simpan paling sedikit. Keluarkan stok dari batch ini terlebih dahulu untuk mencegah kerugian produk kadaluarsa di gudang.
+                            </p>
+                        </div>
+                    </div>
+
+                    <div className="flex flex-wrap items-center gap-2.5 flex-shrink-0">
+                        {/* Selector Hari */}
+                        <div className="flex items-center gap-1 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl p-1 text-xs">
+                            {[7, 14, 30].map(days => (
+                                <button
+                                    key={days}
+                                    type="button"
+                                    onClick={() => setFefoDaysFilter(days)}
+                                    className={`px-2.5 py-1 rounded-lg font-semibold transition cursor-pointer ${
+                                        fefoDaysFilter === days
+                                            ? 'bg-amber-500 text-white shadow-2xs'
+                                            : 'text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white'
+                                    }`}
+                                >
+                                    H-{days}
+                                </button>
+                            ))}
+                        </div>
+
+                        <Link
+                            to="/stok/Keluar"
+                            className="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-xs font-bold transition shadow-sm hover:shadow"
+                        >
+                            <ArrowUpFromLine className="w-3.5 h-3.5" />
+                            <span>Keluarkan Stok (FEFO)</span>
+                        </Link>
+                    </div>
+                </div>
+            )}
 
             {/* Filter */}
             <div className="flex flex-col sm:flex-row gap-2 sm:gap-4">

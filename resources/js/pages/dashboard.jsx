@@ -11,6 +11,7 @@ import StokMenipisTable from '../components/dashboard/StokMenipisTable';
 import StokMovementChart from '../components/dashboard/StokMovementChart';
 import AktivitasTerbaru from '../components/dashboard/AktivitasTerbaru';
 import AksiCepat from '../components/dashboard/AksiCepat';
+import FefoEarlyWarningWidget from '../components/dashboard/FefoEarlyWarningWidget';
 
 export default function Dashboard() {
     const { darkMode } = gunakanDarkMode();
@@ -22,6 +23,7 @@ export default function Dashboard() {
     const [autoRefreshActive, setAutoRefreshActive] = useState(false);
     const [refreshInterval, setRefreshInterval] = useState(5);
     const [showStockCount, setShowStockCount] = useState(true);
+    const [expiringBatches, setExpiringBatches] = useState([]);
 
     const [stats, setStats] = useState({
         total_produk: 0,
@@ -120,12 +122,13 @@ export default function Dashboard() {
         };
 
         try {
-            const [statsRes, chartRes, lowStockRes, movementRes, activitiesRes] = await Promise.allSettled([
+            const [statsRes, chartRes, lowStockRes, movementRes, activitiesRes, expiringRes] = await Promise.allSettled([
                 fetch('/api/dashboard/stats', { headers }),
                 fetch('/api/dashboard/stok-chart', { headers }),
                 fetch('/api/dashboard/low-stock', { headers }),
                 fetch('/api/dashboard/movement-chart', { headers }),
-                fetch('/api/dashboard/recent-activities', { headers })
+                fetch('/api/dashboard/recent-activities', { headers }),
+                fetch('/api/batch/expiring?days=30', { headers })
             ]);
 
             if (statsRes.status === 'fulfilled' && statsRes.value.ok) {
@@ -165,6 +168,11 @@ export default function Dashboard() {
             if (activitiesRes.status === 'fulfilled' && activitiesRes.value.ok) {
                 const res = await activitiesRes.value.json();
                 setActivities(Array.isArray(res.data) ? res.data : []);
+            }
+
+            if (expiringRes.status === 'fulfilled' && expiringRes.value.ok) {
+                const res = await expiringRes.value.json();
+                setExpiringBatches(Array.isArray(res.data) ? res.data : []);
             }
 
             setLastUpdated(new Date());
@@ -419,15 +427,25 @@ export default function Dashboard() {
                 </div>
             </div>
 
-            {/* Row 3: Bottom Section (Stok Masuk/Keluar, Aktivitas Terbaru, Aksi Cepat) */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-                {/* 1. Stok Masuk & Keluar (Database) */}
-                <StokMovementChart movementData={movementData} darkMode={darkMode} />
+            {/* Row 3: Mid-Bottom Section (Tren Pergerakan Stok & Peringatan Dini FEFO) */}
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5">
+                {/* Left: Tren Stok Masuk & Keluar (Database) */}
+                <div className="lg:col-span-7">
+                    <StokMovementChart movementData={movementData} darkMode={darkMode} />
+                </div>
 
-                {/* 2. Aktivitas Terbaru (Database) */}
+                {/* Right: Peringatan Dini FEFO (Database) */}
+                <div className="lg:col-span-5">
+                    <FefoEarlyWarningWidget batches={expiringBatches} darkMode={darkMode} />
+                </div>
+            </div>
+
+            {/* Row 4: Bottom Section (Aktivitas Terbaru & Aksi Cepat Operasional) */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* 1. Aktivitas Terbaru (Database) */}
                 <AktivitasTerbaru activities={activities} darkMode={darkMode} />
 
-                {/* 3. Aksi Cepat */}
+                {/* 2. Aksi Cepat Operasional Gudang */}
                 <AksiCepat darkMode={darkMode} />
             </div>
 

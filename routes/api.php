@@ -26,9 +26,177 @@ Route::middleware('auth:sanctum')->group(function () {
     // Stok masuk-keluar-transaksi
     Route::post('/stok/masuk', [StokController::class, 'masuk']);
     Route::post('/stok/keluar', [StokController::class, 'keluar']);
+    Route::post('/stok/opname', [StokController::class, 'opname']);
+    Route::post('/stok/penyesuaian', [StokController::class, 'opname']);
     Route::get('/stok/history', [StokController::class, 'history']);
     Route::get('/stok/summary', [StokController::class, 'summary']);
     Route::get('/stok/{id}', [StokController::class, 'show']);
+
+    // Batch Expiring Alert (FEFO)
+    Route::get('/batch/expiring', function (Request $request) {
+        $days = (int) $request->query('days', 30);
+        $today = \Carbon\Carbon::today();
+        $targetDate = \Carbon\Carbon::today()->addDays($days);
+
+        $batches = \App\Models\Batch::with(['produk.kategori'])
+            ->whereDate('tanggal_kadaluarsa', '<=', $targetDate)
+            ->orderBy('tanggal_kadaluarsa', 'asc')
+            ->get()
+            ->map(function ($b) use ($today) {
+                $exp = \Carbon\Carbon::parse($b->tanggal_kadaluarsa);
+                $diff = $today->diffInDays($exp, false);
+                $b->days_left = $diff;
+                $b->is_expired = $diff < 0;
+                $b->urgency = $diff < 0 ? 'expired' : ($diff <= 7 ? 'critical' : ($diff <= 14 ? 'warning' : 'attention'));
+                return $b;
+            });
+
+        return response()->json([
+            'success' => true,
+            'data' => $batches,
+            'summary' => [
+                'total' => $batches->count(),
+                'expired' => $batches->where('is_expired', true)->count(),
+                'critical' => $batches->where('urgency', 'critical')->count(),
+                'warning' => $batches->where('urgency', 'warning')->count(),
+            ]
+        ]);
+    });
+
+    // Audit Log / Riwayat Aktivitas
+    Route::get('/audit-logs', function (Request $request) {
+        $query = \App\Models\ActivityLog::query()->orderBy('created_at', 'desc');
+
+        if ($request->action) {
+            $query->where('action', $request->action);
+        }
+        if ($request->entity_type) {
+            $query->where('entity_type', $request->entity_type);
+        }
+        if ($request->search) {
+            $q = $request->search;
+            $query->where(function ($w) use ($q) {
+                $w->where('description', 'like', "%{$q}%")
+                  ->orWhere('user_name', 'like', "%{$q}%");
+            });
+        }
+
+        $perPage = (int) $request->query('per_page', 20);
+        $logs = $query->paginate($perPage);
+
+        return response()->json([
+            'success' => true,
+            'data' => $logs,
+        ]);
+    });
+
+    // Import Massal Produk via CSV / JSON
+    Route::post('/produk/import', function (Request $request) {
+        $items = [];
+
+        if ($request->hasFile('file')) {
+            $file = $request->file('file');
+            $path = $file->getRealPath();
+            $handle = fopen($path, 'r');
+            if ($handle !== false) {
+                // Deteksi header baris pertama
+                $header = fgetcsv($handle, 1000, ',');
+                if (!$header || count($header) < 2) {
+                    rewind($handle);
+                    $header = fgetcsv($handle, 1000, ';');
+                }
+
+                // Normalisasi nama header ke lowercase
+                $cleanHeaders = array_map(fn($h) => strtolower(trim(str_replace([' ', '_', '-'], '', $h))), $header ?: []);
+
+                while (($row = fgetcsv($handle, 1000, str_contains(implode(',', $header), ';') ? ';' : ',')) !== false) {
+                    if (empty(array_filter($row))) continue;
+                    $item = [];
+                    foreach ($row as $idx => $val) {
+                        $col = $cleanHeaders[$idx] ?? "col_{$idx}";
+                        $item[$col] = trim($val);
+                    }
+                    $items[] = [
+                        'nama_produk' => $item['namaproduk'] ?? $item['nama'] ?? ($row[0] ?? ''),
+                        'kategori' => $item['kategori'] ?? ($row[1] ?? 'Umum'),
+                        'pemasok' => $item['pemasok'] ?? ($row[2] ?? 'Pemasok Utama'),
+                        'stok' => (int) ($item['stok'] ?? $item['stokawal'] ?? ($row[3] ?? 0)),
+                        'stok_minimal' => (int) ($item['stokminimal'] ?? $item['stokmin'] ?? ($row[4] ?? 10)),
+                        'deskripsi' => $item['deskripsi'] ?? ($row[5] ?? ''),
+                    ];
+                }
+                fclose($handle);
+            }
+        } elseif ($request->has('items') && is_array($request->items)) {
+            $items = $request->items;
+        }
+
+        if (empty($items)) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Tidak ada data produk yang ditemukan dalam file atau input.'
+            ], 422);
+        }
+
+        $imported = 0;
+        $errors = [];
+
+        foreach ($items as $idx => $it) {
+            $nama = trim($it['nama_produk'] ?? '');
+            if (!$nama) {
+                $errors[] = "Baris " . ($idx + 1) . ": Nama produk tidak boleh kosong.";
+                continue;
+            }
+
+            // Kategori
+            $katName = trim($it['kategori'] ?? 'Umum') ?: 'Umum';
+            $kategori = \App\Models\Kategori::firstOrCreate(['nama_kategori' => $katName]);
+
+            // Pemasok
+            $pemName = trim($it['pemasok'] ?? 'Pemasok Utama') ?: 'Pemasok Utama';
+            $pemasok = \App\Models\Pemasok::firstOrCreate(
+                ['nama_pemasok' => $pemName],
+                ['kontak' => '-', 'alamat' => '-']
+            );
+
+            // Generate SKU unik
+            $sku = 'PRD-' . strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $nama), 0, 3)) . '-' . rand(1000, 9999);
+            while (\App\Models\Produk::where('sku', $sku)->exists()) {
+                $sku = 'PRD-' . strtoupper(substr(preg_replace('/[^A-Za-z0-9]/', '', $nama), 0, 3)) . '-' . rand(10000, 99999);
+            }
+
+            $stokAwal = max(0, (int) ($it['stok'] ?? 0));
+            $stokMin = max(1, (int) ($it['stok_minimal'] ?? 10));
+
+            $prod = \App\Models\Produk::create([
+                'nama_produk' => $nama,
+                'sku' => $sku,
+                'kategori_id' => $kategori->id,
+                'pemasok_id' => $pemasok->id,
+                'stok' => $stokAwal,
+                'stok_minimal' => $stokMin,
+                'deskripsi' => $it['deskripsi'] ?? null,
+            ]);
+
+            \App\Models\ActivityLog::record(
+                'import',
+                'Produk',
+                $prod->id,
+                "Import massal: Menambahkan produk '{$prod->nama_produk}' (SKU: {$sku}, Stok Awal: {$stokAwal})"
+            );
+
+            $imported++;
+        }
+
+        return response()->json([
+            'success' => true,
+            'message' => "Berhasil mengimpor {$imported} produk.",
+            'data' => [
+                'total_imported' => $imported,
+                'errors' => $errors,
+            ]
+        ]);
+    });
 
     // Produk QR
     Route::post('/produk/{id}/generate-qr', [QrController::class, 'generateProdukQr']);
@@ -246,6 +414,97 @@ Route::get('/dashboard/low-stock', function () {
     return response()->json([
         'success' => true,
         'data' => $products,
+    ]);
+});
+
+// Route API untuk Notifikasi Dashboard & Header
+Route::get('/dashboard/notifications', function () {
+    $items = [];
+    $today = \Carbon\Carbon::today();
+
+    // 1. Cek produk stok habis
+    $habis = \App\Models\Produk::where('stok', '<=', 0)->limit(5)->get();
+    foreach ($habis as $p) {
+        $items[] = [
+            'id' => 'out-' . $p->id,
+            'type' => 'danger',
+            'title' => 'Stok Habis: ' . $p->nama_produk,
+            'desc' => 'Sisa stok 0 unit. Segera lakukan pengadaan atau restock.',
+            'time' => 'Kritis',
+        ];
+    }
+
+    // 2. Cek produk stok menipis
+    $menipis = \App\Models\Produk::whereColumn('stok', '<=', 'stok_minimal')
+        ->where('stok', '>', 0)
+        ->limit(5)
+        ->get();
+    foreach ($menipis as $p) {
+        $items[] = [
+            'id' => 'low-' . $p->id,
+            'type' => 'warning',
+            'title' => 'Stok Menipis: ' . $p->nama_produk,
+            'desc' => "Sisa {$p->stok} unit (Batas minimum: {$p->stok_minimal} unit).",
+            'time' => 'Peringatan',
+        ];
+    }
+
+    // 3. Cek batch kadaluarsa / mendekati kadaluarsa
+    $expiringBatches = \App\Models\Batch::with('produk')
+        ->where('stok_saat_ini', '>', 0)
+        ->whereDate('tanggal_kadaluarsa', '<=', \Carbon\Carbon::today()->addDays(30))
+        ->orderBy('tanggal_kadaluarsa', 'asc')
+        ->limit(5)
+        ->get();
+
+    foreach ($expiringBatches as $b) {
+        $expDate = \Carbon\Carbon::parse($b->tanggal_kadaluarsa);
+        $diffDays = $today->diffInDays($expDate, false);
+        $prodName = $b->produk ? $b->produk->nama_produk : 'Produk #' . $b->produk_id;
+
+        if ($diffDays < 0) {
+            $items[] = [
+                'id' => 'exp-' . $b->id,
+                'type' => 'danger',
+                'title' => 'Kadaluarsa: ' . $prodName,
+                'desc' => "Batch #{$b->id} telah melewati tanggal kadaluarsa (" . $expDate->format('d/m/Y') . ").",
+                'time' => 'Expired',
+            ];
+        } else {
+            $items[] = [
+                'id' => 'exp-warn-' . $b->id,
+                'type' => 'warning',
+                'title' => 'Mendekati Kadaluarsa: ' . $prodName,
+                'desc' => "Batch #{$b->id} kadaluarsa dalam {$diffDays} hari (" . $expDate->format('d/m/Y') . ").",
+                'time' => "H-{$diffDays}",
+            ];
+        }
+    }
+
+    // 4. Mutasi transaksi terbaru (info)
+    $latestTrx = \App\Models\StokTransaksi::with(['produk', 'user'])
+        ->orderBy('created_at', 'desc')
+        ->limit(3)
+        ->get();
+    foreach ($latestTrx as $trx) {
+        $pName = $trx->produk ? $trx->produk->nama_produk : 'Produk';
+        $items[] = [
+            'id' => 'trx-' . $trx->id,
+            'type' => 'info',
+            'title' => ($trx->tipe === 'masuk' ? '📥 Stok Masuk: ' : ($trx->tipe === 'keluar' ? '📤 Stok Keluar: ' : '⚖️ Penyesuaian: ')) . $pName,
+            'desc' => "Sebanyak {$trx->jumlah} unit. Dicatat oleh " . ($trx->user ? $trx->user->name : 'Operator'),
+            'time' => \Carbon\Carbon::parse($trx->tanggal)->diffForHumans(),
+        ];
+    }
+
+    $count = count(array_filter($items, fn($it) => in_array($it['type'], ['danger', 'warning'])));
+
+    return response()->json([
+        'success' => true,
+        'data' => [
+            'count' => $count,
+            'items' => array_slice($items, 0, 15),
+        ]
     ]);
 });
 

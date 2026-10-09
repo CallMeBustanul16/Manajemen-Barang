@@ -29,7 +29,7 @@ class UserController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email',
             'password' => 'required|min:6',
-            'role' => 'required|in:admin,staff,manager',
+            'role' => 'nullable|in:admin',
         ]);
 
         if ($validator->fails()) {
@@ -40,7 +40,7 @@ class UserController extends Controller
             'name' => $request->name,
             'email' => $request->email,
             'password' => Hash::make($request->password),
-            'role' => $request->role,
+            'role' => 'admin',
         ]);
 
         return response()->json([
@@ -69,7 +69,7 @@ class UserController extends Controller
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
             'email' => 'required|email|unique:users,email,' . $id,
-            'role' => 'required|in:admin,staff,manager',
+            'role' => 'nullable|in:admin',
             'password' => 'nullable|min:6',
         ]);
 
@@ -79,7 +79,7 @@ class UserController extends Controller
 
         $user->name = $request->name;
         $user->email = $request->email;
-        $user->role = $request->role;
+        $user->role = 'admin';
 
         // Hanya update password jika diisi
         if ($request->filled('password')) {

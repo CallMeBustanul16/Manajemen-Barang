@@ -161,6 +161,9 @@ class StokController extends Controller
                 'user_id' => $user->id,
             ]);
 
+            // Catat activity log
+            \App\Models\ActivityLog::record('out', 'Stok', $produk->id, "Stok keluar {$jumlah} unit untuk produk '{$produk->nama_produk}' dari Batch #{$batch->id}");
+
             DB::commit();
 
             return response()->json([
@@ -186,6 +189,94 @@ class StokController extends Controller
     }
 
     /**
+     * Stock Opname / Penyesuaian Stok Fisik vs Sistem
+     */
+    public function opname(Request $request)
+    {
+        $request->validate([
+            'produk_id' => 'required|exists:produk,id',
+            'batch_id' => 'nullable|exists:batch,id',
+            'stok_fisik' => 'required|integer|min:0',
+            'alasan' => 'required|string',
+            'catatan' => 'nullable|string',
+            'tanggal' => 'required|date',
+        ]);
+
+        $produk = Produk::findOrFail($request->produk_id);
+        $batch = $request->batch_id ? Batch::find($request->batch_id) : null;
+        $user = Auth::user() ?? \App\Models\User::first();
+        $stokFisik = (int) $request->stok_fisik;
+
+        if ($batch && $batch->produk_id !== $produk->id) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Batch tidak sesuai dengan produk yang dipilih'
+            ], 422);
+        }
+
+        DB::beginTransaction();
+        try {
+            if ($batch) {
+                $stokSebelum = $batch->stok_saat_ini;
+                $selisih = $stokFisik - $stokSebelum;
+                $batch->stok_saat_ini = $stokFisik;
+                $batch->save();
+
+                $produk->stok = max(0, $produk->stok + $selisih);
+                $produk->save();
+            } else {
+                $stokSebelum = $produk->stok;
+                $selisih = $stokFisik - $stokSebelum;
+                $produk->stok = $stokFisik;
+                $produk->save();
+            }
+
+            $sign = $selisih >= 0 ? "+{$selisih}" : "{$selisih}";
+            $catatanLengkap = "[Stock Opname - {$request->alasan}] Selisih: {$sign} unit. " . ($request->catatan ? "Catatan: " . $request->catatan : "");
+
+            $transaksi = StokTransaksi::create([
+                'produk_id' => $produk->id,
+                'batch_id' => $batch ? $batch->id : null,
+                'tipe' => 'penyesuaian',
+                'scan_mode' => $batch ? 'batch' : 'manual',
+                'jumlah' => abs($selisih),
+                'stok_sebelum' => $stokSebelum,
+                'stok_sesudah' => $stokFisik,
+                'catatan' => $catatanLengkap,
+                'tanggal' => $request->tanggal,
+                'user_id' => $user->id,
+            ]);
+
+            \App\Models\ActivityLog::record(
+                'adjustment',
+                'Stok',
+                $produk->id,
+                "Penyesuaian stok produk '{$produk->nama_produk}' dari {$stokSebelum} menjadi {$stokFisik} ({$sign} unit). Alasan: {$request->alasan}"
+            );
+
+            DB::commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => "Stock Opname berhasil disimpan. Stok sistem disesuaikan menjadi {$stokFisik} unit ({$sign} unit).",
+                'data' => [
+                    'produk' => $produk->fresh(),
+                    'batch' => $batch ? $batch->fresh() : null,
+                    'transaksi' => $transaksi,
+                    'selisih' => $selisih,
+                ]
+            ], 201);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            Log::error('Gagal opname: ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Gagal menyimpan penyesuaian stok: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Riwayat transaksi stok
      */
     public function history(Request $request)
@@ -193,7 +284,7 @@ class StokController extends Controller
         $request->validate([
             'produk_id' => 'nullable|exists:produk,id',
             'batch_id' => 'nullable|exists:batch,id',
-            'tipe' => 'nullable|in:masuk,keluar',
+            'tipe' => 'nullable|in:masuk,keluar,penyesuaian',
             'start_date' => 'nullable|date',
             'end_date' => 'nullable|date|after_or_equal:start_date',
             'per_page' => 'nullable|integer|min:1|max:100',

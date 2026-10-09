@@ -31,6 +31,7 @@ class ProdukControllers extends Controller
     public function store(MemintaProduk $request): JsonResponse
     {
         $produk = Produk::create($request->validated());
+        \App\Models\ActivityLog::record('create', 'Produk', $produk->id, "Menambahkan produk baru '{$produk->nama_produk}' (SKU: {$produk->sku})");
         return response()->json([
             'success' => true,
             'data' => new ProdukResource($produk->load(['kategori', 'pemasok'])),
@@ -56,6 +57,7 @@ class ProdukControllers extends Controller
     public function update(MemintaProduk $request, Produk $produk): JsonResponse
     {
         $produk->update($request->validated());
+        \App\Models\ActivityLog::record('update', 'Produk', $produk->id, "Memperbarui data produk '{$produk->nama_produk}' (SKU: {$produk->sku})");
         return response()->json([
             'success' => true,
             'data' => new ProdukResource($produk->load(['kategori', 'pemasok'])),
@@ -68,6 +70,7 @@ class ProdukControllers extends Controller
      */
     public function destroy(Produk $produk): JsonResponse
     {
+        \App\Models\ActivityLog::record('delete', 'Produk', $produk->id, "Menghapus produk '{$produk->nama_produk}' (SKU: {$produk->sku})");
         $produk->delete();
         return response()->json([
             'success' => true,

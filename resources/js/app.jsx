@@ -42,6 +42,10 @@ import EditProduk from './pages/Produk/Edit';
 import StokHome from './pages/Stok/Index';
 import StokBarangMasuk from './pages/Stok/Masuk';
 import StokBarangKeluar from './pages/Stok/Keluar';
+import StokOpname from './pages/Stok/Opname';
+
+// Import Audit Log / Riwayat Aktivitas
+import AuditLogIndex from './pages/AuditLog/Index';
 
 // Import Batch
 import BatchHome from './pages/Batch/Index';
@@ -282,6 +286,37 @@ function AppContent() {
                     <PrivateRoute>
                         <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
                             <SettingsPage />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+
+                <Route path="/stok/opname" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <StokOpname />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/stok/Opname" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <StokOpname />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+
+                {/* Audit Log / Riwayat Aktivitas */}
+                <Route path="/audit-log" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <AuditLogIndex />
+                        </MainLayout>
+                    </PrivateRoute>
+                } />
+                <Route path="/aktivitas" element={
+                    <PrivateRoute>
+                        <MainLayout darkMode={darkMode} toggleDarkMode={toggleDarkMode}>
+                            <AuditLogIndex />
                         </MainLayout>
                     </PrivateRoute>
                 } />

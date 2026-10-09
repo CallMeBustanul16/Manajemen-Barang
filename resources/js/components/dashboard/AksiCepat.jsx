@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { Zap, Package, ArrowDownToLine, ArrowUpFromLine, FileText } from 'lucide-react';
+import { Zap, Package, ArrowDownToLine, ArrowUpFromLine, FileText, ClipboardCheck, History } from 'lucide-react';
 
 export default function AksiCepat({ darkMode }) {
     const actions = [
@@ -14,19 +14,31 @@ export default function AksiCepat({ darkMode }) {
             to: '/stok/Masuk',
             icon: ArrowDownToLine,
             label: 'Stok Masuk',
-            iconColor: 'text-red-600',
+            iconColor: 'text-emerald-600',
         },
         {
             to: '/stok/Keluar',
             icon: ArrowUpFromLine,
             label: 'Stok Keluar',
-            iconColor: 'text-red-600',
+            iconColor: 'text-rose-600',
+        },
+        {
+            to: '/stok/opname',
+            icon: ClipboardCheck,
+            label: 'Stock Opname',
+            iconColor: 'text-amber-500',
         },
         {
             to: '/laporan',
             icon: FileText,
             label: 'Laporan',
-            iconColor: 'text-slate-600 dark:text-slate-300',
+            iconColor: 'text-blue-500',
+        },
+        {
+            to: '/audit-log',
+            icon: History,
+            label: 'Riwayat Audit',
+            iconColor: 'text-purple-500',
         },
     ];
 
@@ -45,20 +57,20 @@ export default function AksiCepat({ darkMode }) {
                             Aksi Cepat
                         </h3>
                         <p className="text-xs text-gray-400 dark:text-gray-500 font-normal leading-tight mt-0.5">
-                            Kelola inventaris dengan cepat
+                            Pintasan cepat operasional gudang
                         </p>
                     </div>
                 </div>
 
-                {/* 2x2 Action Grid */}
-                <div className="grid grid-cols-2 gap-3.5">
+                {/* 2x3 Action Grid */}
+                <div className="grid grid-cols-2 gap-3">
                     {actions.map((act, index) => {
                         const Icon = act.icon;
                         return (
                             <Link
                                 key={index}
                                 to={act.to}
-                                className={`p-4 rounded-xl flex flex-col items-center justify-center gap-2 text-center transition-all duration-200 group border cursor-pointer ${
+                                className={`p-3 sm:p-3.5 rounded-xl flex flex-col items-center justify-center gap-1.5 text-center transition-all duration-200 group border cursor-pointer ${
                                     darkMode 
                                         ? 'bg-gray-800/80 hover:bg-gray-800 border-gray-700/80 hover:border-red-500/50' 
                                         : 'bg-[#fff7f7] hover:bg-[#ffeded] border-rose-100 hover:border-red-200 shadow-xs hover:shadow'
