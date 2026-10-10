@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
 import { 
     Menu, X, Search, Bell, Moon, Sun, Compass, BookOpen, LogOut, ChevronDown, Check, User, Settings,
@@ -27,10 +28,23 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
     const [commandPaletteOpen, setCommandPaletteOpen] = useState(false);
     const [commandSearch, setCommandSearch] = useState('');
     const [quickProducts, setQuickProducts] = useState([]);
+    const [quickCategories, setQuickCategories] = useState([]);
     const [quickBatches, setQuickBatches] = useState([]);
     const [loadingQuickData, setLoadingQuickData] = useState(false);
     const [selectedIndex, setSelectedIndex] = useState(0);
     const commandInputRef = useRef(null);
+
+    // Prevent background page scrolling while Command Palette is active
+    useEffect(() => {
+        if (commandPaletteOpen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, [commandPaletteOpen]);
 
     const loadUserData = () => {
         const userData = localStorage.getItem('user');
@@ -90,20 +104,26 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
             setSelectedIndex(0);
             setTimeout(() => commandInputRef.current?.focus(), 50);
 
-            // Fetch products and batches once for instant fast searching
+            // Fetch products, categories, and batches once for instant fast searching
             const fetchQuickData = async () => {
                 setLoadingQuickData(true);
                 try {
                     const token = localStorage.getItem('token');
                     const headers = { 'Authorization': `Bearer ${token}`, 'Accept': 'application/json' };
-                    const [prodRes, batchRes] = await Promise.allSettled([
+                    const [prodRes, catRes, batchRes] = await Promise.allSettled([
                         fetch('/api/produk?per_page=100', { headers }),
+                        fetch('/api/kategori', { headers }),
                         fetch('/api/batch?per_page=50', { headers })
                     ]);
                     if (prodRes.status === 'fulfilled' && prodRes.value.ok) {
                         const pj = await prodRes.value.json();
                         const pItems = Array.isArray(pj.data?.data) ? pj.data.data : (Array.isArray(pj.data) ? pj.data : []);
                         setQuickProducts(pItems);
+                    }
+                    if (catRes.status === 'fulfilled' && catRes.value.ok) {
+                        const cj = await catRes.value.json();
+                        const cItems = Array.isArray(cj.data) ? cj.data : (Array.isArray(cj.data?.data) ? cj.data.data : []);
+                        setQuickCategories(cItems);
                     }
                     if (batchRes.status === 'fulfilled' && batchRes.value.ok) {
                         const bj = await batchRes.value.json();
@@ -206,6 +226,73 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
             }
         });
     };
+
+    // Hasil pencarian Command Palette (Navigasi, Aksi Cepat, Kategori, Produk, Batch)
+    const commandResults = useMemo(() => {
+        const navList = [
+            { label: 'Tambah Produk Baru', path: '/produk/Create', icon: PlusCircle, category: 'Aksi Cepat', hint: 'Input master data barang' },
+            { label: 'Catat Stok Masuk', path: '/stok/Masuk', icon: ArrowDownToLine, category: 'Aksi Cepat', hint: 'Penerimaan barang masuk dari supplier' },
+            { label: 'Catat Stok Keluar', path: '/stok/Keluar', icon: ArrowUpFromLine, category: 'Aksi Cepat', hint: 'Pengeluaran/distribusi barang' },
+            { label: 'Stock Opname / Penyesuaian', path: '/stok/opname', icon: ClipboardCheck, category: 'Aksi Cepat', hint: 'Sinkronisasi fisik vs sistem gudang' },
+            { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, category: 'Navigasi' },
+            { label: 'Master Produk', path: '/produk', icon: Package, category: 'Navigasi' },
+            { label: 'Kategori Barang', path: '/kategori', icon: Tag, category: 'Navigasi' },
+            { label: 'Daftar Pemasok / Supplier', path: '/pemasok', icon: Truck, category: 'Navigasi' },
+            { label: 'Riwayat Stok Masuk/Keluar', path: '/stok', icon: ArrowLeftRight, category: 'Navigasi' },
+            { label: 'Batch Inventaris & FEFO', path: '/batch', icon: LayoutGrid, category: 'Navigasi' },
+            { label: 'Scanner QR Code / Barcode', path: '/scan', icon: QrCode, category: 'Navigasi' },
+            { label: 'Laporan Inventaris', path: '/laporan', icon: BarChart3, category: 'Navigasi' },
+            { label: 'Riwayat Audit & Aktivitas', path: '/audit-log', icon: History, category: 'Navigasi' },
+            { label: 'Pengaturan Sistem', path: '/pengaturan', icon: Settings, category: 'Navigasi' },
+            { label: 'Profil Saya', path: '/profil', icon: User, category: 'Navigasi' },
+        ];
+
+        const q = commandSearch.toLowerCase().trim();
+        const matchActions = navList.filter(item => 
+            !q || item.label.toLowerCase().includes(q) || (item.hint && item.hint.toLowerCase().includes(q))
+        );
+
+        const matchCategories = quickCategories.filter(c =>
+            q && (c.nama_kategori?.toLowerCase().includes(q) || c.deskripsi?.toLowerCase().includes(q) || c.slug?.toLowerCase().includes(q))
+        ).slice(0, 3).map(c => ({
+            label: `Kategori: ${c.nama_kategori}`,
+            path: `/kategori`,
+            icon: Tag,
+            category: 'Kategori',
+            hint: c.deskripsi || 'Master kategori inventaris'
+        }));
+
+        const matchProds = quickProducts.filter(p => 
+            q && (
+                p.nama_produk?.toLowerCase().includes(q) ||
+                p.kode_produk?.toLowerCase().includes(q) ||
+                p.sku?.toLowerCase().includes(q) ||
+                p.kategori?.nama_kategori?.toLowerCase().includes(q)
+            )
+        ).slice(0, 5).map(p => ({
+            label: p.nama_produk,
+            path: `/produk/Edit/${p.id}`,
+            icon: Box,
+            category: 'Produk',
+            hint: `SKU: ${p.sku || p.kode_produk || '-'} | Stok: ${p.stok || 0} ${p.satuan || 'unit'}`
+        }));
+
+        const matchBatches = quickBatches.filter(b => 
+            q && (
+                b.qr_code?.toLowerCase().includes(q) ||
+                b.lokasi_rak?.toLowerCase().includes(q) ||
+                b.produk?.nama_produk?.toLowerCase().includes(q)
+            )
+        ).slice(0, 3).map(b => ({
+            label: `Batch ${b.qr_code}`,
+            path: `/batch`,
+            icon: LayoutGrid,
+            category: 'Batch',
+            hint: `${b.produk?.nama_produk || 'Produk'} | Rak: ${b.lokasi_rak || '-'}`
+        }));
+
+        return [...matchActions, ...matchCategories, ...matchProds, ...matchBatches];
+    }, [commandSearch, quickProducts, quickCategories, quickBatches]);
 
     return (
         <header className={`h-20 border-b sticky top-0 z-30 transition-colors duration-200 ${
@@ -475,9 +562,9 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
             </div>
 
             {/* Global Search / Command Palette Modal (Ctrl + K) */}
-            {commandPaletteOpen && (
+            {commandPaletteOpen && typeof document !== 'undefined' && createPortal(
                 <div 
-                    className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-16 sm:pt-24 px-4 overflow-y-auto animate-in fade-in duration-150"
+                    className="fixed inset-0 z-[9999] bg-black/60 backdrop-blur-sm flex items-start justify-center pt-16 sm:pt-24 px-4 overflow-y-auto animate-in fade-in duration-150"
                     onClick={() => setCommandPaletteOpen(false)}
                 >
                     <div 
@@ -500,58 +587,17 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                                     setSelectedIndex(0);
                                 }}
                                 onKeyDown={(e) => {
-                                    const navList = [
-                                        { label: 'Tambah Produk Baru', path: '/produk/Create', icon: PlusCircle, category: 'Aksi Cepat', hint: 'Input master data barang' },
-                                        { label: 'Catat Stok Masuk', path: '/stok/Masuk', icon: ArrowDownToLine, category: 'Aksi Cepat', hint: 'Penerimaan barang masuk' },
-                                        { label: 'Catat Stok Keluar', path: '/stok/Keluar', icon: ArrowUpFromLine, category: 'Aksi Cepat', hint: 'Pengeluaran/distribusi barang' },
-                                        { label: 'Stock Opname / Penyesuaian', path: '/stok/opname', icon: ClipboardCheck, category: 'Aksi Cepat', hint: 'Sinkronisasi fisik vs sistem' },
-                                        { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, category: 'Navigasi' },
-                                        { label: 'Master Produk', path: '/produk', icon: Package, category: 'Navigasi' },
-                                        { label: 'Kategori Barang', path: '/kategori', icon: Tag, category: 'Navigasi' },
-                                        { label: 'Daftar Pemasok', path: '/pemasok', icon: Truck, category: 'Navigasi' },
-                                        { label: 'Riwayat Stok Masuk/Keluar', path: '/stok', icon: ArrowLeftRight, category: 'Navigasi' },
-                                        { label: 'Batch Inventaris & FEFO', path: '/batch', icon: LayoutGrid, category: 'Navigasi' },
-                                        { label: 'Scanner QR Code', path: '/scan', icon: QrCode, category: 'Navigasi' },
-                                        { label: 'Laporan Inventaris', path: '/laporan', icon: BarChart3, category: 'Navigasi' },
-                                        { label: 'Riwayat Audit & Aktivitas', path: '/audit-log', icon: History, category: 'Navigasi' },
-                                        { label: 'Pengaturan', path: '/pengaturan', icon: Settings, category: 'Navigasi' },
-                                        { label: 'Profil Saya', path: '/profil', icon: User, category: 'Navigasi' },
-                                    ];
-                                    const q = commandSearch.toLowerCase().trim();
-                                    const matchActions = navList.filter(item => 
-                                        !q || item.label.toLowerCase().includes(q) || (item.hint && item.hint.toLowerCase().includes(q))
-                                    );
-                                    const matchProds = quickProducts.filter(p => 
-                                        q && (p.nama_produk?.toLowerCase().includes(q) || p.kode_produk?.toLowerCase().includes(q))
-                                    ).slice(0, 5).map(p => ({
-                                        label: p.nama_produk,
-                                        path: `/produk/Edit/${p.id}`,
-                                        icon: Box,
-                                        category: 'Produk',
-                                        hint: `SKU: ${p.kode_produk || '-'} | Stok: ${p.stok || 0}`
-                                    }));
-                                    const matchBatches = quickBatches.filter(b => 
-                                        q && (b.qr_code?.toLowerCase().includes(q) || b.lokasi_rak?.toLowerCase().includes(q) || b.produk?.nama_produk?.toLowerCase().includes(q))
-                                    ).slice(0, 3).map(b => ({
-                                        label: `Batch ${b.qr_code}`,
-                                        path: `/batch`,
-                                        icon: LayoutGrid,
-                                        category: 'Batch',
-                                        hint: `${b.produk?.nama_produk || ''} | Rak: ${b.lokasi_rak || '-'}`
-                                    }));
-                                    const combined = [...matchActions, ...matchProds, ...matchBatches];
-
                                     if (e.key === 'ArrowDown') {
                                         e.preventDefault();
-                                        setSelectedIndex(prev => (prev + 1) % Math.max(1, combined.length));
+                                        setSelectedIndex(prev => (prev + 1) % Math.max(1, commandResults.length));
                                     } else if (e.key === 'ArrowUp') {
                                         e.preventDefault();
-                                        setSelectedIndex(prev => (prev - 1 + combined.length) % Math.max(1, combined.length));
+                                        setSelectedIndex(prev => (prev - 1 + commandResults.length) % Math.max(1, commandResults.length));
                                     } else if (e.key === 'Enter') {
                                         e.preventDefault();
-                                        if (combined[selectedIndex]) {
+                                        if (commandResults[selectedIndex]) {
                                             setCommandPaletteOpen(false);
-                                            navigate(combined[selectedIndex].path);
+                                            navigate(commandResults[selectedIndex].path);
                                         }
                                     }
                                 }}
@@ -573,60 +619,14 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
 
                         {/* Search Results List */}
                         <div className="max-h-[380px] overflow-y-auto p-2 space-y-1">
-                            {(() => {
-                                const navList = [
-                                    { label: 'Tambah Produk Baru', path: '/produk/Create', icon: PlusCircle, category: 'Aksi Cepat', hint: 'Input master data barang' },
-                                    { label: 'Catat Stok Masuk', path: '/stok/Masuk', icon: ArrowDownToLine, category: 'Aksi Cepat', hint: 'Penerimaan barang masuk' },
-                                    { label: 'Catat Stok Keluar', path: '/stok/Keluar', icon: ArrowUpFromLine, category: 'Aksi Cepat', hint: 'Pengeluaran/distribusi barang' },
-                                    { label: 'Stock Opname / Penyesuaian', path: '/stok/opname', icon: ClipboardCheck, category: 'Aksi Cepat', hint: 'Sinkronisasi fisik vs sistem' },
-                                    { label: 'Dashboard', path: '/dashboard', icon: LayoutDashboard, category: 'Navigasi' },
-                                    { label: 'Master Produk', path: '/produk', icon: Package, category: 'Navigasi' },
-                                    { label: 'Kategori Barang', path: '/kategori', icon: Tag, category: 'Navigasi' },
-                                    { label: 'Daftar Pemasok', path: '/pemasok', icon: Truck, category: 'Navigasi' },
-                                    { label: 'Riwayat Stok Masuk/Keluar', path: '/stok', icon: ArrowLeftRight, category: 'Navigasi' },
-                                    { label: 'Batch Inventaris & FEFO', path: '/batch', icon: LayoutGrid, category: 'Navigasi' },
-                                    { label: 'Scanner QR Code', path: '/scan', icon: QrCode, category: 'Navigasi' },
-                                    { label: 'Laporan Inventaris', path: '/laporan', icon: BarChart3, category: 'Navigasi' },
-                                    { label: 'Riwayat Audit & Aktivitas', path: '/audit-log', icon: History, category: 'Navigasi' },
-                                    { label: 'Pengaturan', path: '/pengaturan', icon: Settings, category: 'Navigasi' },
-                                    { label: 'Profil Saya', path: '/profil', icon: User, category: 'Navigasi' },
-                                ];
-                                const q = commandSearch.toLowerCase().trim();
-                                const matchActions = navList.filter(item => 
-                                    !q || item.label.toLowerCase().includes(q) || (item.hint && item.hint.toLowerCase().includes(q))
-                                );
-                                const matchProds = quickProducts.filter(p => 
-                                    q && (p.nama_produk?.toLowerCase().includes(q) || p.kode_produk?.toLowerCase().includes(q))
-                                ).slice(0, 5).map(p => ({
-                                    label: p.nama_produk,
-                                    path: `/produk/Edit/${p.id}`,
-                                    icon: Box,
-                                    category: 'Produk',
-                                    hint: `SKU: ${p.kode_produk || '-'} | Stok: ${p.stok || 0}`
-                                }));
-                                const matchBatches = quickBatches.filter(b => 
-                                    q && (b.qr_code?.toLowerCase().includes(q) || b.lokasi_rak?.toLowerCase().includes(q) || b.produk?.nama_produk?.toLowerCase().includes(q))
-                                ).slice(0, 3).map(b => ({
-                                    label: `Batch ${b.qr_code}`,
-                                    path: `/batch`,
-                                    icon: LayoutGrid,
-                                    category: 'Batch',
-                                    hint: `${b.produk?.nama_produk || ''} | Rak: ${b.lokasi_rak || '-'}`
-                                }));
-
-                                const items = [...matchActions, ...matchProds, ...matchBatches];
-
-                                if (items.length === 0) {
-                                    return (
-                                        <div className="text-center py-8 text-gray-400">
-                                            <Search className="w-8 h-8 mx-auto mb-2 opacity-40 text-red-500" />
-                                            <p className="text-sm font-medium">Tidak ada hasil ditemukan untuk "{commandSearch}"</p>
-                                            <p className="text-xs text-gray-400 mt-1">Coba kata kunci lain seperti nama barang, nomor batch, atau nama menu.</p>
-                                        </div>
-                                    );
-                                }
-
-                                return items.map((item, idx) => {
+                            {commandResults.length === 0 ? (
+                                <div className="text-center py-8 text-gray-400">
+                                    <Search className="w-8 h-8 mx-auto mb-2 opacity-40 text-red-500" />
+                                    <p className="text-sm font-medium">Tidak ada hasil ditemukan untuk "{commandSearch}"</p>
+                                    <p className="text-xs text-gray-400 mt-1">Coba kata kunci lain seperti nama barang, nomor batch, atau nama menu.</p>
+                                </div>
+                            ) : (
+                                commandResults.map((item, idx) => {
                                     const Icon = item.icon;
                                     const isSelected = idx === selectedIndex;
                                     return (
@@ -685,8 +685,8 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                                             </div>
                                         </div>
                                     );
-                                });
-                            })()}
+                                })
+                            )}
                         </div>
 
                         {/* Footer Tips */}
@@ -701,7 +701,8 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                             <span className="hidden sm:inline font-medium text-red-500">Shortcut Global (Ctrl+K)</span>
                         </div>
                     </div>
-                </div>
+                </div>,
+                document.body
             )}
         </header>
     );
