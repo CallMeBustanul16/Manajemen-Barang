@@ -433,24 +433,37 @@ export default function Header({ onMenuToggle, isSidebarOpen, darkMode, toggleDa
                                     {notifications.length === 0 ? (
                                         <p className="text-center py-4 text-gray-400">{t('noNotifications')}</p>
                                     ) : (
-                                        notifications.map((item) => (
-                                            <div 
-                                                key={item.id}
-                                                className={`p-2.5 rounded-xl border ${
-                                                    item.type === 'danger' 
-                                                        ? 'bg-rose-50/70 dark:bg-rose-950/30 border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-300'
-                                                        : item.type === 'warning'
-                                                        ? 'bg-amber-50/70 dark:bg-amber-950/30 border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300'
-                                                        : 'bg-gray-50 dark:bg-gray-800/60 border-gray-100 dark:border-gray-700/50 text-gray-800 dark:text-gray-200'
-                                                }`}
-                                            >
-                                                <div className="flex justify-between items-start">
-                                                    <p className="font-bold text-xs">{item.title}</p>
-                                                    <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono ml-2 flex-shrink-0">{item.time}</span>
+                                        notifications.map((item) => {
+                                            const handleItemClick = () => {
+                                                setNotificationOpen(false);
+                                                if (item.id.startsWith('out-') || item.id.startsWith('low-')) {
+                                                    navigate('/produk');
+                                                } else if (item.id.startsWith('exp-')) {
+                                                    navigate('/batch');
+                                                } else if (item.id.startsWith('trx-')) {
+                                                    navigate('/stok');
+                                                }
+                                            };
+                                            return (
+                                                <div 
+                                                    key={item.id}
+                                                    onClick={handleItemClick}
+                                                    className={`p-2.5 rounded-xl border cursor-pointer hover:shadow-sm hover:scale-[1.01] transition-all ${
+                                                        item.type === 'danger' 
+                                                            ? 'bg-rose-50/70 hover:bg-rose-100/70 dark:bg-rose-950/30 dark:hover:bg-rose-950/50 border-rose-100 dark:border-rose-900/30 text-rose-800 dark:text-rose-300'
+                                                            : item.type === 'warning'
+                                                            ? 'bg-amber-50/70 hover:bg-amber-100/70 dark:bg-amber-950/30 dark:hover:bg-amber-950/50 border-amber-100 dark:border-amber-900/30 text-amber-800 dark:text-amber-300'
+                                                            : 'bg-gray-50 hover:bg-gray-100/70 dark:bg-gray-800/60 dark:hover:bg-gray-800 border-gray-100 dark:border-gray-700/50 text-gray-800 dark:text-gray-200'
+                                                    }`}
+                                                >
+                                                    <div className="flex justify-between items-start">
+                                                        <p className="font-bold text-xs">{item.title}</p>
+                                                        <span className="text-[10px] text-gray-400 dark:text-gray-500 font-mono ml-2 flex-shrink-0">{item.time}</span>
+                                                    </div>
+                                                    <p className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5 leading-tight">{item.desc}</p>
                                                 </div>
-                                                <p className="text-gray-500 dark:text-gray-400 text-[11px] mt-0.5 leading-tight">{item.desc}</p>
-                                            </div>
-                                        ))
+                                            );
+                                        })
                                     )}
                                 </div>
                             </div>
