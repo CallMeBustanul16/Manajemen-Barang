@@ -3,7 +3,8 @@ import {
     Sliders, Bell, Shield, Info, Monitor, Sun, Moon, Globe, 
     RotateCw, Eye, Check, Clock, Laptop, ShieldCheck, AlertTriangle,
     Camera, Volume2, Boxes, Rows, CalendarClock, ArrowUpDown,
-    Database, Printer, Download, Layers, Hash, Compass, BookOpen
+    Database, Printer, Download, Layers, Hash, Compass, BookOpen,
+    Building2, FileText, CheckCircle2, Save, FileCode
 } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { gunakanDarkMode } from '../../context/DarkModeContext';
@@ -12,7 +13,7 @@ import { useLanguage } from '../../context/LanguageContext';
 export default function SettingsPage() {
     const { darkMode, themeMode, setThemeMode } = gunakanDarkMode();
     const { language, setLanguage, t } = useLanguage();
-    const [activeTab, setActiveTab] = useState('tampilan'); // 'tampilan' | 'gudang' | 'notifikasi' | 'keamanan' | 'tentang'
+    const [activeTab, setActiveTab] = useState('tampilan'); // 'tampilan' | 'gudang' | 'notifikasi' | 'keamanan' | 'data' | 'perusahaan' | 'tentang'
     const [currentTime, setCurrentTime] = useState('');
 
     // Settings state
@@ -51,10 +52,128 @@ export default function SettingsPage() {
         app_version: '2.5.2',
     });
 
+    // Identitas Perusahaan & Kop Surat (Point 4)
+    const [company, setCompany] = useState({
+        company_name: 'PT. LOGISTIK JAYA ABADI',
+        company_tagline: 'Divisi Pergudangan & Logistik Modern',
+        company_address: 'Jl. Industri Pergudangan No. 88, Blok B, Jakarta Barat',
+        company_phone: '021-5558899 / 0812-3456-7890',
+        company_email: 'gudang@logistikjaya.co.id',
+        company_pic: 'Admin User',
+        company_pic_role: 'Kepala Logistik & Pergudangan',
+        company_note: 'Barang yang telah diterima harap diperiksa secara teliti sesuai dokumen bukti fisik ini.'
+    });
+    const [companyLoading, setCompanyLoading] = useState(false);
+    const [sqlBackupLoading, setSqlBackupLoading] = useState(false);
+    const [sqliteBackupLoading, setSqliteBackupLoading] = useState(false);
+
     const [backupLoading, setBackupLoading] = useState(false);
     const [cacheLoading, setCacheLoading] = useState(false);
     const [savedNotice, setSavedNotice] = useState(false);
     const saveNoticeTimeoutRef = useRef(null);
+
+    const handleSaveCompany = async (e) => {
+        if (e) e.preventDefault();
+        setCompanyLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/settings/company', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Accept': 'application/json',
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                },
+                body: JSON.stringify(company)
+            });
+            const data = await res.json();
+            if (data.success) {
+                localStorage.setItem('companyProfile', JSON.stringify(data.data));
+                window.dispatchEvent(new CustomEvent('company-profile-updated', { detail: data.data }));
+                triggerAutoSaveFeedback();
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Tersimpan!',
+                    text: 'Identitas perusahaan dan kop surat berhasil diperbarui.',
+                    timer: 1800,
+                    showConfirmButton: false
+                });
+            }
+        } catch (err) {
+            console.error('Error saving company:', err);
+            Swal.fire('Error', 'Gagal menyimpan identitas perusahaan.', 'error');
+        } finally {
+            setCompanyLoading(false);
+        }
+    };
+
+    const handleDownloadSqlBackup = async () => {
+        setSqlBackupLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/settings/backup-sql', {
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+            if (!res.ok) throw new Error('Gagal mengunduh cadangan SQL');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `backup-database-${new Date().toISOString().slice(0, 10)}.sql`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'File database SQL (.sql) berhasil diunduh.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            console.error('SQL Backup error:', err);
+            Swal.fire('Error', 'Gagal mengunduh berkas SQL.', 'error');
+        } finally {
+            setSqlBackupLoading(false);
+        }
+    };
+
+    const handleDownloadSqliteBackup = async () => {
+        setSqliteBackupLoading(true);
+        try {
+            const token = localStorage.getItem('token');
+            const res = await fetch('/api/settings/backup-sqlite', {
+                headers: {
+                    ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+                }
+            });
+            if (!res.ok) throw new Error('Gagal mengunduh berkas SQLite');
+            const blob = await res.blob();
+            const url = window.URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `database-inventaris-${new Date().toISOString().slice(0, 10)}.sqlite`;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            window.URL.revokeObjectURL(url);
+            Swal.fire({
+                title: 'Berhasil!',
+                text: 'Berkas database SQLite (.sqlite) berhasil diunduh.',
+                icon: 'success',
+                timer: 2000,
+                showConfirmButton: false
+            });
+        } catch (err) {
+            console.error('SQLite Backup error:', err);
+            Swal.fire('Error', 'Gagal mengunduh berkas SQLite.', 'error');
+        } finally {
+            setSqliteBackupLoading(false);
+        }
+    };
 
     const handleDownloadBackup = async () => {
         setBackupLoading(true);
@@ -187,6 +306,20 @@ export default function SettingsPage() {
                     theme: themeMode || localObj.theme || data.data.theme || 'dark',
                     language: language || localObj.language || data.data.language || 'id',
                 }));
+            }
+
+            // Sync company profile
+            const savedCompany = localStorage.getItem('companyProfile');
+            if (savedCompany) {
+                try {
+                    setCompany(prev => ({ ...prev, ...JSON.parse(savedCompany) }));
+                } catch (e) {}
+            }
+            const resCompany = await fetch('/api/settings/company');
+            const dataCompany = await resCompany.json();
+            if (dataCompany.success && dataCompany.data) {
+                setCompany(prev => ({ ...prev, ...dataCompany.data }));
+                localStorage.setItem('companyProfile', JSON.stringify(dataCompany.data));
             }
         } catch (e) {
             console.error('Error fetching settings:', e);
@@ -393,6 +526,29 @@ export default function SettingsPage() {
                         <div>
                             <p className="text-xs font-bold leading-tight">{t('tabDataManagement')}</p>
                             <p className="text-[11px] text-gray-400 mt-1 leading-snug">{t('tabDataManagementSub')}</p>
+                        </div>
+                    </button>
+
+                    {/* Item: Identitas Perusahaan & Kop Surat (Point 4) */}
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('perusahaan')}
+                        className={`w-full text-left p-3.5 rounded-xl transition-all cursor-pointer flex items-start gap-3.5 ${
+                            activeTab === 'perusahaan'
+                                ? 'bg-rose-50/80 dark:bg-rose-950/40 text-red-700 dark:text-red-400 border border-rose-100 dark:border-rose-900/40'
+                                : 'hover:bg-gray-50 dark:hover:bg-gray-700/50 text-gray-700 dark:text-gray-300'
+                        }`}
+                    >
+                        <div className={`p-2 rounded-lg mt-0.5 ${
+                            activeTab === 'perusahaan' 
+                                ? 'bg-red-100 dark:bg-red-900/50 text-red-600 dark:text-red-300' 
+                                : 'bg-gray-100 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+                        }`}>
+                            <Building2 className="w-4 h-4" />
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold leading-tight">{t('tabCompany') || 'Profil & Kop Surat'}</p>
+                            <p className="text-[11px] text-gray-400 mt-1 leading-snug">{t('tabCompanySub') || 'Identitas cetak surat & tanda terima'}</p>
                         </div>
                     </button>
 
@@ -1318,7 +1474,7 @@ export default function SettingsPage() {
                     {/* TAB: MANAJEMEN DATA & CADANGAN (Point 2) */}
                     {activeTab === 'data' && (
                         <div className="space-y-6">
-                            {/* Card Backup */}
+                            {/* Card Backup Database Lengkap */}
                             <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-5">
                                 <div className="flex items-start gap-3.5">
                                     <div className="p-2.5 rounded-xl bg-gray-50 dark:bg-gray-700/40 text-gray-700 dark:text-gray-300">
@@ -1334,10 +1490,61 @@ export default function SettingsPage() {
                                     </div>
                                 </div>
 
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {/* Option 1: Backup SQL */}
+                                    <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200/70 dark:border-gray-700 flex flex-col justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-blue-100 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300">.SQL Dump</span>
+                                                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                    Cadangkan Database SQL 1-Klik
+                                                </p>
+                                            </div>
+                                            <p className="text-[11px] text-gray-400">
+                                                Ekspor seluruh struktur tabel & record riil ke format teks SQL standar. Kompatibel dengan MySQL, MariaDB, & SQLite.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadSqlBackup}
+                                            disabled={sqlBackupLoading}
+                                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-md shadow-red-600/20 transition-all cursor-pointer disabled:opacity-50"
+                                        >
+                                            <FileCode className={`w-4 h-4 ${sqlBackupLoading ? 'animate-bounce' : ''}`} />
+                                            <span>{sqlBackupLoading ? 'Menyiapkan SQL...' : 'Unduh Cadangan SQL (.sql)'}</span>
+                                        </button>
+                                    </div>
+
+                                    {/* Option 2: Backup SQLite Mentah */}
+                                    <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200/70 dark:border-gray-700 flex flex-col justify-between gap-4">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <span className="px-2 py-0.5 text-[10px] font-bold rounded bg-emerald-100 dark:bg-emerald-900/50 text-emerald-700 dark:text-emerald-300">.SQLite File</span>
+                                                <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
+                                                    Cadangkan Berkas Database Mentah
+                                                </p>
+                                            </div>
+                                            <p className="text-[11px] text-gray-400">
+                                                Salinan berkas biner SQLite aktif (database.sqlite). Sempurna untuk restore instan, kloning lokal, atau arsip server.
+                                            </p>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={handleDownloadSqliteBackup}
+                                            disabled={sqliteBackupLoading}
+                                            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-md shadow-emerald-600/20 transition-all cursor-pointer disabled:opacity-50"
+                                        >
+                                            <Database className={`w-4 h-4 ${sqliteBackupLoading ? 'animate-bounce' : ''}`} />
+                                            <span>{sqliteBackupLoading ? 'Mengunduh SQLite...' : 'Unduh Berkas SQLite (.sqlite)'}</span>
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Option 3: JSON Snapshot */}
                                 <div className="p-5 rounded-xl bg-gray-50 dark:bg-gray-900/40 border border-gray-200/70 dark:border-gray-700 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                                     <div className="space-y-1">
                                         <p className="text-xs font-bold text-gray-800 dark:text-gray-200">
-                                            Ekspor Snapshot Data Gudang
+                                            Ekspor Snapshot JSON Gudang
                                         </p>
                                         <p className="text-[11px] text-gray-400">
                                             Menghasilkan file arsip .json berisi seluruh data produk, batch, stok, kategori, dan pemasok.
@@ -1347,7 +1554,7 @@ export default function SettingsPage() {
                                         type="button"
                                         onClick={handleDownloadBackup}
                                         disabled={backupLoading}
-                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-md shadow-red-600/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                                        className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-100 text-xs font-semibold rounded-xl border border-gray-200 dark:border-gray-600 transition-all cursor-pointer disabled:opacity-50 shrink-0"
                                     >
                                         <Download className={`w-4 h-4 ${backupLoading ? 'animate-bounce' : ''}`} />
                                         <span>{backupLoading ? 'Mengunduh...' : t('downloadBackupBtn')}</span>
@@ -1396,6 +1603,200 @@ export default function SettingsPage() {
                             <div className="flex items-center justify-end gap-1.5 pt-1 text-[11px] text-gray-400 dark:text-gray-500">
                                 <Check className="w-3.5 h-3.5 text-emerald-500" />
                                 <span>{t('autoSavedNote')}</span>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* TAB: PROFIL PERUSAHAAN & KOP SURAT (Point 4) */}
+                    {activeTab === 'perusahaan' && (
+                        <div className="space-y-6">
+                            {/* Card Identitas */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-6">
+                                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-gray-100 dark:border-gray-700/60 pb-5">
+                                    <div className="flex items-start gap-3.5">
+                                        <div className="p-2.5 rounded-xl bg-red-50 dark:bg-red-950/40 text-red-600 dark:text-red-400">
+                                            <Building2 className="w-5 h-5" />
+                                        </div>
+                                        <div>
+                                            <h3 className="text-sm font-bold text-gray-900 dark:text-white">
+                                                Identitas Perusahaan & Kop Surat Resmi
+                                            </h3>
+                                            <p className="text-xs text-gray-400 mt-0.5">
+                                                Informasi ini dicetak otomatis pada header bukti transaksi serah terima dan ekspor PDF laporan resmi.
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <button
+                                        type="button"
+                                        onClick={handleSaveCompany}
+                                        disabled={companyLoading}
+                                        className="inline-flex items-center justify-center gap-2 px-5 py-2.5 bg-red-600 hover:bg-red-700 active:scale-[0.98] text-white text-xs font-semibold rounded-xl shadow-md shadow-red-600/20 transition-all cursor-pointer disabled:opacity-50 shrink-0"
+                                    >
+                                        <Save className={`w-4 h-4 ${companyLoading ? 'animate-spin' : ''}`} />
+                                        <span>{companyLoading ? 'Menyimpan...' : 'Simpan Profil & Kop Surat'}</span>
+                                    </button>
+                                </div>
+
+                                <form onSubmit={handleSaveCompany} className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Nama Perusahaan / Instansi <span className="text-red-500">*</span>
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={company.company_name}
+                                            onChange={(e) => setCompany({ ...company, company_name: e.target.value })}
+                                            placeholder="Contoh: PT. LOGISTIK JAYA ABADI"
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                            required
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Sub-judul / Tagline Kop Surat
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={company.company_tagline}
+                                            onChange={(e) => setCompany({ ...company, company_tagline: e.target.value })}
+                                            placeholder="Contoh: Divisi Pergudangan & Logistik Modern"
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Alamat Lengkap Kantor / Gudang
+                                        </label>
+                                        <textarea
+                                            rows="2"
+                                            value={company.company_address}
+                                            onChange={(e) => setCompany({ ...company, company_address: e.target.value })}
+                                            placeholder="Contoh: Jl. Industri Pergudangan No. 88, Blok B, Jakarta Barat"
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Nomor Telepon / WhatsApp
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={company.company_phone}
+                                            onChange={(e) => setCompany({ ...company, company_phone: e.target.value })}
+                                            placeholder="Contoh: 021-5558899 / 0812-3456-7890"
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Email Resmi
+                                        </label>
+                                        <input
+                                            type="email"
+                                            value={company.company_email}
+                                            onChange={(e) => setCompany({ ...company, company_email: e.target.value })}
+                                            placeholder="Contoh: gudang@logistikjaya.co.id"
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Nama PIC / Kepala Gudang (Tanda Tangan)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={company.company_pic}
+                                            onChange={(e) => setCompany({ ...company, company_pic: e.target.value })}
+                                            placeholder="Contoh: Admin User"
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                        />
+                                    </div>
+
+                                    <div>
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Jabatan PIC Resmi
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={company.company_pic_role}
+                                            onChange={(e) => setCompany({ ...company, company_pic_role: e.target.value })}
+                                            placeholder="Contoh: Kepala Logistik & Pergudangan"
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                        />
+                                    </div>
+
+                                    <div className="md:col-span-2">
+                                        <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                                            Catatan Kaki Dokumen Cetak (Footer Note)
+                                        </label>
+                                        <input
+                                            type="text"
+                                            value={company.company_note}
+                                            onChange={(e) => setCompany({ ...company, company_note: e.target.value })}
+                                            placeholder="Contoh: Barang yang telah diterima harap diperiksa secara teliti sesuai dokumen bukti fisik ini."
+                                            className="w-full px-4 py-2.5 rounded-xl text-xs bg-gray-50 dark:bg-gray-900/60 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white focus:bg-white dark:focus:bg-gray-900 focus:ring-2 focus:ring-red-500/20 focus:border-red-500 outline-none transition"
+                                        />
+                                    </div>
+                                </form>
+                            </div>
+
+                            {/* Live Preview Kop Surat & Tanda Tangan */}
+                            <div className="bg-white dark:bg-gray-800 rounded-2xl border border-gray-100 dark:border-gray-700/60 shadow-sm p-6 sm:p-7 space-y-4">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex items-center gap-2">
+                                        <Printer className="w-4 h-4 text-red-600 dark:text-red-400" />
+                                        <h4 className="text-xs font-bold uppercase tracking-wider text-gray-700 dark:text-gray-300">
+                                            Pratinjau Langsung Kop Surat & Dokumen Resmi
+                                        </h4>
+                                    </div>
+                                    <span className="text-[11px] px-2.5 py-0.5 rounded-full bg-emerald-50 dark:bg-emerald-950/40 text-emerald-600 dark:text-emerald-400 font-semibold border border-emerald-200/50 dark:border-emerald-800/40">
+                                        Live Preview
+                                    </span>
+                                </div>
+
+                                <div className="p-6 rounded-xl bg-gray-50 dark:bg-gray-900/80 border border-gray-200 dark:border-gray-700 font-sans text-gray-900 dark:text-gray-100 shadow-inner">
+                                    {/* Header Preview */}
+                                    <div className="border-b-2 border-gray-900 dark:border-gray-100 pb-3 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-2">
+                                        <div>
+                                            <h2 className="text-base sm:text-lg font-black tracking-tight uppercase text-gray-900 dark:text-white">
+                                                {company.company_name || 'NAMA PERUSAHAAN'}
+                                            </h2>
+                                            <p className="text-xs font-semibold text-gray-700 dark:text-gray-300">
+                                                {company.company_tagline || 'Tagline / Divisi'}
+                                            </p>
+                                            <p className="text-[11px] text-gray-500 dark:text-gray-400 mt-0.5">
+                                                {company.company_address} 
+                                                {company.company_phone && ` • Telp: ${company.company_phone}`}
+                                                {company.company_email && ` • Email: ${company.company_email}`}
+                                            </p>
+                                        </div>
+                                        <div className="text-right sm:text-right text-[10px] text-gray-400 uppercase tracking-widest font-mono">
+                                            BUKTI TRANSAKSI GUDANG
+                                        </div>
+                                    </div>
+
+                                    {/* Dummy Content */}
+                                    <div className="py-4 space-y-2 text-xs text-gray-500 dark:text-gray-400">
+                                        <p className="italic text-[11px]">... Konten tabel rincian mutasi barang masuk/keluar atau laporan stok berkala ...</p>
+                                    </div>
+
+                                    {/* Footer / Signature Preview */}
+                                    <div className="pt-4 border-t border-gray-200 dark:border-gray-700/60 flex flex-col sm:flex-row justify-between items-start sm:items-end gap-4 text-xs">
+                                        <div className="max-w-xs text-[11px] text-gray-500 dark:text-gray-400 italic">
+                                            "{company.company_note || 'Barang yang telah diterima harap diperiksa secara teliti.'}"
+                                        </div>
+                                        <div className="text-center min-w-[160px]">
+                                            <p className="text-[10px] text-gray-500 mb-8">Disahkan Oleh,</p>
+                                            <p className="font-bold underline text-gray-900 dark:text-white">{company.company_pic || 'Admin User'}</p>
+                                            <p className="text-[10px] text-gray-400">{company.company_pic_role || 'Kepala Gudang'}</p>
+                                        </div>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     )}

@@ -148,8 +148,13 @@
 <body>
     <!-- Header -->
     <div class="header">
-        <h1>LAPORAN STOK</h1>
-        <p>Manajemen Barang</p>
+        <h1 style="text-transform: uppercase;">{{ $company['company_name'] ?? 'SISTEM MANAJEMEN INVENTARIS' }}</h1>
+        <p style="font-weight: bold; color: #4b5563;">{{ $company['company_tagline'] ?? 'Divisi Pergudangan & Logistik' }} • LAPORAN MUTASI STOK</p>
+        <p style="font-size: 10px; color: #6b7280; margin-top: 3px;">
+            {{ $company['company_address'] ?? 'Alamat Gudang Utama' }} 
+            @if(!empty($company['company_phone'])) | Telp: {{ $company['company_phone'] }} @endif
+            @if(!empty($company['company_email'])) | Email: {{ $company['company_email'] }} @endif
+        </p>
     </div>
 
     <!-- Info Periode -->
@@ -239,10 +244,25 @@
         </tbody>
     </table>
 
+    <!-- Tanda Tangan Resmi -->
+    <div style="margin-top: 30px; display: table; width: 100%;">
+        <div style="display: table-cell; width: 50%; text-align: left; vertical-align: top; font-size: 10px; color: #4b5563;">
+            <p style="font-weight: bold; margin-bottom: 3px;">Catatan Resmi:</p>
+            <p style="font-style: italic; max-width: 280px; line-height: 1.4;">{{ $company['company_note'] ?? 'Laporan ini sah dan dihasilkan otomatis oleh sistem inventaris.' }}</p>
+        </div>
+        <div style="display: table-cell; width: 50%; text-align: right; vertical-align: top;">
+            <div style="display: inline-block; text-align: center; min-width: 180px;">
+                <p style="font-size: 10px; color: #4b5563; margin-bottom: 40px;">Disahkan Oleh,</p>
+                <p style="font-size: 11px; font-weight: bold; text-decoration: underline; color: #111827;">{{ $company['company_pic'] ?? 'Admin User' }}</p>
+                <p style="font-size: 9px; color: #6b7280; margin-top: 2px;">{{ $company['company_pic_role'] ?? 'Kepala Logistik & Pergudangan' }}</p>
+            </div>
+        </div>
+    </div>
+
     <!-- Footer -->
     <div class="footer">
-        <p>Dokumen ini dicetak secara otomatis oleh Sistem Manajemen Barang</p>
-        <p>&copy; {{ date('Y') }} Manajemen Barang. All rights reserved.</p>
+        <p>Dokumen ini dicetak secara resmi oleh {{ $company['company_name'] ?? 'Sistem Manajemen Inventaris' }}</p>
+        <p>&copy; {{ date('Y') }} {{ $company['company_name'] ?? 'Manajemen Barang' }}. All rights reserved.</p>
     </div>
 </body>
 </html>

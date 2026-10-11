@@ -53,6 +53,56 @@ export default function StokIndex() {
         return () => window.removeEventListener('app-settings-changed', handleSettingsChange);
     }, []);
 
+    // Identitas Perusahaan / Kop Surat Dinamis
+    const [companyProfile, setCompanyProfile] = useState(() => {
+        try {
+            const saved = localStorage.getItem('companyProfile');
+            return saved ? JSON.parse(saved) : {
+                company_name: 'PT. LOGISTIK JAYA ABADI',
+                company_tagline: 'Divisi Pergudangan & Logistik Modern',
+                company_address: 'Jl. Industri Pergudangan No. 88, Blok B, Jakarta Barat',
+                company_phone: '021-5558899 / 0812-3456-7890',
+                company_email: 'gudang@logistikjaya.co.id',
+                company_pic: 'Admin User',
+                company_pic_role: 'Kepala Logistik & Pergudangan',
+                company_note: 'Barang yang telah diterima harap diperiksa secara teliti sesuai dokumen bukti fisik ini.'
+            };
+        } catch {
+            return {
+                company_name: 'PT. LOGISTIK JAYA ABADI',
+                company_tagline: 'Divisi Pergudangan & Logistik Modern',
+                company_address: 'Jl. Industri Pergudangan No. 88, Blok B, Jakarta Barat',
+                company_phone: '021-5558899 / 0812-3456-7890',
+                company_email: 'gudang@logistikjaya.co.id',
+                company_pic: 'Admin User',
+                company_pic_role: 'Kepala Logistik & Pergudangan',
+                company_note: 'Barang yang telah diterima harap diperiksa secara teliti sesuai dokumen bukti fisik ini.'
+            };
+        }
+    });
+
+    useEffect(() => {
+        const fetchCompany = async () => {
+            try {
+                const res = await fetch('/api/settings/company');
+                const json = await res.json();
+                if (json.success && json.data) {
+                    setCompanyProfile(json.data);
+                    localStorage.setItem('companyProfile', JSON.stringify(json.data));
+                }
+            } catch (err) {
+                console.error('Failed to load company profile:', err);
+            }
+        };
+        fetchCompany();
+
+        const handleCompanyUpdate = (e) => {
+            if (e.detail) setCompanyProfile(e.detail);
+        };
+        window.addEventListener('company-profile-updated', handleCompanyUpdate);
+        return () => window.removeEventListener('company-profile-updated', handleCompanyUpdate);
+    }, []);
+
     const fetchTransactions = useCallback(async () => {
         setLoading(true);
         try {
@@ -527,12 +577,15 @@ export default function StokIndex() {
                             <div className="flex justify-between items-start border-b-2 border-gray-800 pb-4">
                                 <div>
                                     <h2 className="text-xl font-black tracking-tight text-gray-900 uppercase">
-                                        Sistem Manajemen Inventaris
+                                        {companyProfile.company_name || 'Sistem Manajemen Inventaris'}
                                     </h2>
-                                    <p className="text-xs text-gray-500 mt-0.5">
-                                        Divisi Pergudangan & Logistik • Bukti Transaksi Resmi
+                                    <p className="text-xs text-gray-700 font-semibold mt-0.5">
+                                        {companyProfile.company_tagline || 'Divisi Pergudangan & Logistik • Bukti Transaksi Resmi'}
                                     </p>
-                                    <p className="text-[11px] text-gray-400">
+                                    <p className="text-[11px] text-gray-500 mt-0.5">
+                                        {companyProfile.company_address} {companyProfile.company_phone && `• Telp: ${companyProfile.company_phone}`}
+                                    </p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">
                                         Dicetak pada: {new Date().toLocaleString('id-ID')}
                                     </p>
                                 </div>
@@ -629,14 +682,17 @@ export default function StokIndex() {
                                 <div>
                                     <p className="text-gray-500 mb-12">Diserahkan Oleh,</p>
                                     <p className="font-bold text-gray-900 border-t border-gray-300 pt-1 mx-2">( ......................... )</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">Pengirim / Supplier</p>
                                 </div>
                                 <div>
                                     <p className="text-gray-500 mb-12">Diterima Oleh,</p>
                                     <p className="font-bold text-gray-900 border-t border-gray-300 pt-1 mx-2">( ......................... )</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">Penerima Divisi</p>
                                 </div>
                                 <div>
-                                    <p className="text-gray-500 mb-12">Petugas Gudang,</p>
-                                    <p className="font-bold text-gray-900 border-t border-gray-300 pt-1 mx-2">( {printModalData.user?.name || 'Administrator'} )</p>
+                                    <p className="text-gray-500 mb-12">Kepala Gudang / PIC,</p>
+                                    <p className="font-bold text-gray-900 border-t border-gray-300 pt-1 mx-2">( {companyProfile.company_pic || printModalData.user?.name || 'Administrator'} )</p>
+                                    <p className="text-[10px] text-gray-400 mt-0.5">{companyProfile.company_pic_role || 'Kepala Pergudangan'}</p>
                                 </div>
                             </div>
                         </div>

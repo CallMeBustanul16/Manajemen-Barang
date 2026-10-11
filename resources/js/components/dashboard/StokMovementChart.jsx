@@ -38,8 +38,7 @@ export default function StokMovementChart({ movementData, darkMode }) {
 
         try {
             const token = localStorage.getItem('token');
-            const daysCount = val === '30d' ? 30 : 7;
-            const res = await fetch(`/api/dashboard/movement-chart?days=${daysCount}`, {
+            const res = await fetch(`/api/dashboard/movement-chart?days=${val}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`,
                     'Accept': 'application/json',
@@ -63,6 +62,9 @@ export default function StokMovementChart({ movementData, darkMode }) {
     const keluarData = dataState?.keluar || [];
     const todayIn = dataState?.today_in ?? 0;
     const todayOut = dataState?.today_out ?? 0;
+    const isMonthly = period === '6m' || period === '12m';
+    const totalPeriodIn = masukData.reduce((acc, curr) => acc + curr, 0);
+    const totalPeriodOut = keluarData.reduce((acc, curr) => acc + curr, 0);
 
     const maxVal = Math.max(
         masukData.length > 0 ? Math.max(...masukData) : 0,
@@ -85,7 +87,7 @@ export default function StokMovementChart({ movementData, darkMode }) {
                     bottomRight: 0,
                 },
                 borderSkipped: false,
-                barPercentage: period === '30d' ? 0.9 : 0.65,
+                barPercentage: (period === '30d' || period === '12m') ? 0.85 : 0.65,
                 categoryPercentage: 0.65,
             },
             {
@@ -99,7 +101,7 @@ export default function StokMovementChart({ movementData, darkMode }) {
                     bottomRight: 0,
                 },
                 borderSkipped: false,
-                barPercentage: period === '30d' ? 0.9 : 0.65,
+                barPercentage: (period === '30d' || period === '12m') ? 0.85 : 0.65,
                 categoryPercentage: 0.65,
             },
         ],
@@ -132,9 +134,9 @@ export default function StokMovementChart({ movementData, darkMode }) {
                     color: darkMode ? '#94a3b8' : '#64748b',
                     font: {
                         family: 'Plus Jakarta Sans',
-                        size: period === '30d' ? 9 : 10,
+                        size: (period === '30d' || period === '12m') ? 9 : 10,
                     },
-                    maxRotation: period === '30d' ? 45 : 0,
+                    maxRotation: (period === '30d' || period === '12m') ? 45 : 0,
                 },
                 border: {
                     display: false,
@@ -174,7 +176,7 @@ export default function StokMovementChart({ movementData, darkMode }) {
                             <ArrowLeftRight className="w-4 h-4" />
                         </div>
                         <h3 className="text-base font-bold text-gray-900 dark:text-white leading-tight">
-                            Stok Masuk & Keluar
+                            {isMonthly ? 'Tren Pergerakan Stok Bulanan' : 'Stok Masuk & Keluar'}
                         </h3>
                     </div>
 
@@ -192,6 +194,8 @@ export default function StokMovementChart({ movementData, darkMode }) {
                             >
                                 <option value="7d">7 Hari Terakhir</option>
                                 <option value="30d">30 Hari Terakhir</option>
+                                <option value="6m">6 Bulan Terakhir (Bulanan)</option>
+                                <option value="12m">1 Tahun Terakhir (12 Bulan)</option>
                             </select>
                             <ChevronDown className="w-3 h-3 text-gray-400 absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none" />
                         </div>
@@ -200,7 +204,7 @@ export default function StokMovementChart({ movementData, darkMode }) {
 
                 {/* 2 Highlight Stat Cards dari Database Riil */}
                 <div className="grid grid-cols-2 gap-3 mb-4">
-                    {/* Stok Masuk Hari Ini */}
+                    {/* Stok Masuk */}
                     <div className={`p-3 rounded-xl flex items-center gap-3 border ${
                         darkMode 
                             ? 'bg-emerald-950/20 border-emerald-900/30' 
@@ -211,15 +215,15 @@ export default function StokMovementChart({ movementData, darkMode }) {
                         </div>
                         <div className="min-w-0">
                             <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate leading-tight">
-                                Stok Masuk Hari Ini
+                                {isMonthly ? 'Total Masuk Periode Ini' : 'Stok Masuk Hari Ini'}
                             </p>
                             <p className="text-sm font-bold text-gray-900 dark:text-emerald-300 leading-tight mt-0.5">
-                                +{todayIn} barang
+                                +{isMonthly ? totalPeriodIn : todayIn} barang
                             </p>
                         </div>
                     </div>
 
-                    {/* Stok Keluar Hari Ini */}
+                    {/* Stok Keluar */}
                     <div className={`p-3 rounded-xl flex items-center gap-3 border ${
                         darkMode 
                             ? 'bg-rose-950/20 border-rose-900/30' 
@@ -230,10 +234,10 @@ export default function StokMovementChart({ movementData, darkMode }) {
                         </div>
                         <div className="min-w-0">
                             <p className="text-[10px] text-gray-500 dark:text-gray-400 truncate leading-tight">
-                                Stok Keluar Hari Ini
+                                {isMonthly ? 'Total Keluar Periode Ini' : 'Stok Keluar Hari Ini'}
                             </p>
                             <p className="text-sm font-bold text-rose-600 dark:text-rose-300 leading-tight mt-0.5">
-                                -{todayOut} barang
+                                -{isMonthly ? totalPeriodOut : todayOut} barang
                             </p>
                         </div>
                     </div>

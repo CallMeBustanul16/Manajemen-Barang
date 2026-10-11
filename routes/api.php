@@ -273,6 +273,18 @@ Route::middleware('auth:sanctum')->group(function () {
             $produkNama = \App\Models\Produk::find($produkId)?->nama_produk;
         }
 
+        $companyDefaults = [
+            'company_name' => 'PT. LOGISTIK JAYA ABADI',
+            'company_tagline' => 'Divisi Pergudangan & Logistik Modern',
+            'company_address' => 'Jl. Industri Pergudangan No. 88, Blok B, Jakarta Barat',
+            'company_phone' => '021-5558899 / 0812-3456-7890',
+            'company_email' => 'gudang@logistikjaya.co.id',
+            'company_pic' => 'Admin User',
+            'company_pic_role' => 'Kepala Logistik & Pergudangan',
+            'company_note' => 'Barang yang telah diterima harap diperiksa secara teliti sesuai dokumen bukti fisik ini.'
+        ];
+        $company = array_merge($companyDefaults, \Illuminate\Support\Facades\Cache::get('company_profile', []));
+
         $data = [
             'startDate' => $startDate ? \Carbon\Carbon::parse($startDate)->format('d/m/Y') : '-',
             'endDate' => $endDate ? \Carbon\Carbon::parse($endDate)->format('d/m/Y') : '-',
@@ -283,6 +295,7 @@ Route::middleware('auth:sanctum')->group(function () {
             'totalMasuk' => $totalMasuk,
             'totalKeluar' => $totalKeluar,
             'selisih' => $totalMasuk - $totalKeluar,
+            'company' => $company,
         ];
 
         $pdf = Pdf::loadView('pdf.laporan-stok', $data)
@@ -510,7 +523,7 @@ Route::get('/dashboard/notifications', function () {
 
 // Route API untuk Movement Chart (100% Data Riil Transaksi Masuk & Keluar)
 Route::get('/dashboard/movement-chart', function (\Illuminate\Http\Request $request) {
-    $daysCount = $request->query('days', 7) == 30 ? 30 : 7;
+    $period = (string) $request->query('days', '7');
     $today = \Carbon\Carbon::today();
 
     $todayIn = (int) \App\Models\StokTransaksi::where('tipe', 'masuk')
@@ -521,6 +534,44 @@ Route::get('/dashboard/movement-chart', function (\Illuminate\Http\Request $requ
         ->whereDate('tanggal', $today)
         ->sum('jumlah');
 
+    if ($period === '6m' || $period === '12m') {
+        $monthsCount = $period === '12m' ? 12 : 6;
+        $days = [];
+        $masuk = [];
+        $keluar = [];
+
+        for ($i = $monthsCount - 1; $i >= 0; $i--) {
+            $monthDate = \Carbon\Carbon::today()->startOfMonth()->subMonths($i);
+            $monthStart = $monthDate->copy()->startOfMonth()->toDateString();
+            $monthEnd = $monthDate->copy()->endOfMonth()->toDateString();
+
+            $days[] = $monthDate->translatedFormat('M Y');
+
+            $masuk[] = (int) \App\Models\StokTransaksi::where('tipe', 'masuk')
+                ->whereDate('tanggal', '>=', $monthStart)
+                ->whereDate('tanggal', '<=', $monthEnd)
+                ->sum('jumlah');
+
+            $keluar[] = (int) \App\Models\StokTransaksi::where('tipe', 'keluar')
+                ->whereDate('tanggal', '>=', $monthStart)
+                ->whereDate('tanggal', '<=', $monthEnd)
+                ->sum('jumlah');
+        }
+
+        return response()->json([
+            'success' => true,
+            'data' => [
+                'today_in' => $todayIn,
+                'today_out' => $todayOut,
+                'days' => $days,
+                'masuk' => $masuk,
+                'keluar' => $keluar,
+                'is_monthly' => true,
+            ]
+        ]);
+    }
+
+    $daysCount = ($period === '30' || $period === '30d') ? 30 : 7;
     $days = [];
     $masuk = [];
     $keluar = [];
@@ -548,6 +599,7 @@ Route::get('/dashboard/movement-chart', function (\Illuminate\Http\Request $requ
             'days' => $days,
             'masuk' => $masuk,
             'keluar' => $keluar,
+            'is_monthly' => false,
         ]
     ]);
 });
@@ -893,5 +945,155 @@ Route::post('/settings/clear-cache', function () {
     return response()->json([
         'success' => true,
         'message' => 'Cache server dan query aplikasi berhasil dibersihkan.'
+    ]);
+});
+
+// Route Backup Database SQL 1-Klik (.sql)
+Route::get('/settings/backup-sql', function () {
+    $dbPath = database_path('database.sqlite');
+    if (!file_exists($dbPath)) {
+        return response()->json(['success' => false, 'message' => 'Database file not found'], 404);
+    }
+
+    try {
+        $pdo = new \PDO("sqlite:" . $dbPath);
+        $pdo->setAttribute(\PDO::ATTR_ERRMODE, \PDO::ERRMODE_EXCEPTION);
+
+        $tables = [
+            'users',
+            'kategori',
+            'pemasok',
+            'produk',
+            'batch',
+            'stok_transaksi',
+            'activity_logs',
+            'sisa_stok',
+            'personal_access_tokens',
+            'sessions',
+            'cache',
+        ];
+
+        $output = [];
+        $output[] = "-- ========================================================";
+        $output[] = "-- CADANGAN DATABASE RESMI: MANAJEMEN GUDANG & INVENTARIS";
+        $output[] = "-- Waktu Ekspor : " . date('Y-m-d H:i:s') . " WIB";
+        $output[] = "-- Format       : SQL Script Dump";
+        $output[] = "-- Kompatibilitas: SQLite, MySQL, MariaDB (XAMPP / phpMyAdmin)";
+        $output[] = "-- ========================================================\n";
+
+        foreach ($tables as $table) {
+            $stmt = $pdo->prepare("SELECT sql FROM sqlite_master WHERE type='table' AND name = :name");
+            $stmt->execute(['name' => $table]);
+            $row = $stmt->fetch(\PDO::FETCH_ASSOC);
+            if (!$row) continue;
+
+            $output[] = "-- --------------------------------------------------------";
+            $output[] = "-- Struktur Tabel: `{$table}`";
+            $output[] = "-- --------------------------------------------------------";
+            $output[] = "DROP TABLE IF EXISTS `{$table}`;";
+            $output[] = $row['sql'] . ";\n";
+
+            $dataStmt = $pdo->query("SELECT * FROM \"{$table}\"");
+            $rows = $dataStmt->fetchAll(\PDO::FETCH_ASSOC);
+            $count = count($rows);
+
+            if ($count > 0) {
+                $output[] = "-- Data Tabel: `{$table}` ({$count} baris)";
+                foreach ($rows as $r) {
+                    $cols = array_keys($r);
+                    $colsEscaped = implode(', ', array_map(fn($c) => "`{$c}`", $cols));
+                    $vals = [];
+                    foreach ($r as $val) {
+                        if ($val === null) {
+                            $vals[] = 'NULL';
+                        } else {
+                            $vals[] = "'" . str_replace("'", "''", $val) . "'";
+                        }
+                    }
+                    $valsJoined = implode(', ', $vals);
+                    $output[] = "INSERT INTO `{$table}` ({$colsEscaped}) VALUES ({$valsJoined});";
+                }
+                $output[] = "";
+            }
+        }
+
+        $sqlContent = implode("\n", $output);
+        $filename = 'backup-database-' . date('Y-m-d-His') . '.sql';
+
+        return response($sqlContent, 200, [
+            'Content-Type' => 'application/sql',
+            'Content-Disposition' => 'attachment; filename="' . $filename . '"',
+        ]);
+    } catch (\Throwable $e) {
+        return response()->json([
+            'success' => false,
+            'message' => 'Gagal menghasilkan backup SQL: ' . $e->getMessage()
+        ], 500);
+    }
+});
+
+// Route Backup SQLite File Mentah (.sqlite)
+Route::get('/settings/backup-sqlite', function () {
+    $dbPath = database_path('database.sqlite');
+    if (!file_exists($dbPath)) {
+        return response()->json(['success' => false, 'message' => 'Database SQLite tidak ditemukan'], 404);
+    }
+    $filename = 'database-inventaris-' . date('Y-m-d-His') . '.sqlite';
+    return response()->download($dbPath, $filename, [
+        'Content-Type' => 'application/x-sqlite3',
+    ]);
+});
+
+// Route API Profil Perusahaan & Kop Surat (Point 4)
+Route::get('/settings/company', function () {
+    $defaults = [
+        'company_name' => 'PT. LOGISTIK JAYA ABADI',
+        'company_tagline' => 'Divisi Pergudangan & Logistik Modern',
+        'company_address' => 'Jl. Industri Pergudangan No. 88, Blok B, Jakarta Barat',
+        'company_phone' => '021-5558899 / 0812-3456-7890',
+        'company_email' => 'gudang@logistikjaya.co.id',
+        'company_pic' => 'Admin User',
+        'company_pic_role' => 'Kepala Logistik & Pergudangan',
+        'company_note' => 'Barang yang telah diterima harap diperiksa secara teliti sesuai dokumen bukti fisik ini.'
+    ];
+
+    $company = array_merge($defaults, \Illuminate\Support\Facades\Cache::get('company_profile', []));
+
+    return response()->json([
+        'success' => true,
+        'data' => $company
+    ]);
+});
+
+Route::post('/settings/company', function (Request $request) {
+    $defaults = [
+        'company_name' => 'PT. LOGISTIK JAYA ABADI',
+        'company_tagline' => 'Divisi Pergudangan & Logistik Modern',
+        'company_address' => 'Jl. Industri Pergudangan No. 88, Blok B, Jakarta Barat',
+        'company_phone' => '021-5558899 / 0812-3456-7890',
+        'company_email' => 'gudang@logistikjaya.co.id',
+        'company_pic' => 'Admin User',
+        'company_pic_role' => 'Kepala Logistik & Pergudangan',
+        'company_note' => 'Barang yang telah diterima harap diperiksa secara teliti sesuai dokumen bukti fisik ini.'
+    ];
+
+    $current = array_merge($defaults, \Illuminate\Support\Facades\Cache::get('company_profile', []));
+    $updated = array_merge($current, $request->only([
+        'company_name',
+        'company_tagline',
+        'company_address',
+        'company_phone',
+        'company_email',
+        'company_pic',
+        'company_pic_role',
+        'company_note',
+    ]));
+
+    \Illuminate\Support\Facades\Cache::forever('company_profile', $updated);
+
+    return response()->json([
+        'success' => true,
+        'message' => 'Identitas perusahaan berhasil diperbarui',
+        'data' => $updated
     ]);
 });

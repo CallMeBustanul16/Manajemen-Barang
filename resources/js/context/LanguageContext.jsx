@@ -55,6 +55,8 @@ export const translations = {
         tabSecuritySub: 'Ubah password dan keamanan akun',
         tabDataManagement: 'Manajemen Data & Cadangan',
         tabDataManagementSub: 'Cadangkan database dan bersihkan cache aplikasi',
+        tabCompany: 'Identitas & Kop Surat',
+        tabCompanySub: 'Profil perusahaan, kontak gudang, dan kop surat resmi',
         tabAbout: 'Tentang Sistem',
         tabAboutSub: 'Informasi versi dan aplikasi',
 
@@ -430,6 +432,8 @@ export const translations = {
         tabSecuritySub: 'Account password & security',
         tabDataManagement: 'Data Management & Backup',
         tabDataManagementSub: 'Backup database and purge system cache',
+        tabCompany: 'Company & Letterhead',
+        tabCompanySub: 'Company profile, contacts, and official letterhead',
         tabAbout: 'About System',
         tabAboutSub: 'Version and app information',
 
