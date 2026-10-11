@@ -1,7 +1,7 @@
 # PRD — Sistem Manajemen Barang (Inventory Management System)
 
 > **Dokumen**: Product Requirements Document (PRD)  
-> **Versi**: 2.5.2  
+> **Versi**: 2.6.0  
 > **Terakhir Diperbarui**: Oktober 2026  
 > **Status**: Live / Production-ready  
 > **Repository**: [CallMeBustanul16/Manajemen-Barang](https://github.com/CallMeBustanul16/Manajemen-Barang)  
@@ -10,15 +10,13 @@
 
 ## 1. Ringkasan Eksekutif
 
-**Manajemen Barang** adalah platform inventaris gudang berbasis web modern yang dirancang untuk mengotomasi dan menyederhanakan pengelolaan produk, stok, lot/batch kardus, serta alur transaksi keluar-masuk barang secara real-time. Sistem dilengkapi pemindai kamera QR Code, ekspor laporan multi-format (Excel & PDF), antarmuka dwibahasa (Indonesia & Inggris), manajemen profil pengguna, serta dashboard analitik terpadu dengan kemampuan pembaruan data otomatis (*auto-refresh*).
+**Manajemen Barang** adalah platform inventaris gudang berbasis web modern yang dirancang untuk mengotomasi dan menyederhanakan pengelolaan produk, stok, lot/batch kardus, serta alur transaksi keluar-masuk barang secara real-time. Sistem dilengkapi pemindai kamera QR Code, ekspor laporan multi-format (Excel & PDF), antarmuka dwibahasa (Indonesia & Inggris), manajemen profil pengguna, pencadangan database 1-klik (.sql & .sqlite), kop surat perusahaan dinamis, serta dashboard analitik terpadu dengan tren pergerakan stok bulanan dan kemampuan pembaruan data otomatis (*auto-refresh*).
 
 ### Problem Statement
 Pengelolaan inventaris berbasis manual atau spreadsheet rentan terhadap selisih stok (*stock discrepancy*), keterlambatan pembaruan data antar-shift gudang, risiko kehilangan dokumen fisik, serta lambatnya proses audit. Sistem ini mengintegrasikan seluruh titik operasional ke dalam satu basis data terpusat yang aman, cepat, dan terukur.
 
 ### Target Pengguna & Peran (Role)
-- **Admin Gudang** — Memiliki akses penuh terhadap seluruh fitur: master data produk, kategori, pemasok, batch, mutasi stok, laporan eksekutif, serta pengaturan sistem dan preferensi pengguna.
-- **Operator Stok / Petugas** — Bertugas mencatat mutasi stok masuk/keluar harian, mengoperasikan scanner QR Code fisik, dan memverifikasi isi batch barang di rak penyimpanan.
-- **Manajer / Supervisor** — Memantau performa pergudangan melalui grafik analitik dashboard, nilai estimasi persediaan, dan peringatan stok kritis (*low stock alerts*).
+- **Administrator Gudang (Single Admin)** — Memiliki akses penuh terhadap seluruh fitur: master data produk, kategori, pemasok, batch, mutasi stok, laporan eksekutif, pencadangan basis data, profil perusahaan/kop surat, serta pengaturan sistem dan preferensi pengguna. (Sistem saat ini difokuskan pada model **Single Administrator** untuk kesederhanaan operasional dan integritas kontrol penuh).
 
 ---
 
@@ -216,6 +214,46 @@ Menu kustomisasi lengkap yang menerapkan prinsip modern **Auto-Save on Change (T
      - Banner status hijau jika memilih batch yang sesuai kebijakan FIFO, atau banner peringatan amber jika memilih batch berbeda.
      - Peringatan kontekstual pada dialog konfirmasi mutasi stok jika terjadi deviasi dari rekomendasi FIFO.
 
+### 5.11 Fitur Operasional Gudang Nyata & Skalabilitas (v2.6.0)
+1. **Cetak Surat Jalan & Bukti Serah Terima Transaksi (Receipt / Delivery Slip)**:
+   - Tombol "Cetak Bukti Transaksi" interaktif (`Printer` icon) pada setiap baris riwayat mutasi stok di tabel transaksi (`Stok/Index.jsx`).
+   - Format cetak ramah nota standar A5 dan thermal printing:
+     - Header dokumen memuat otomatis profil dan kop surat resmi perusahaan (Nama PT, tagline, alamat kantor/gudang, nomor telepon/WA).
+     - Rincian transaksi lengkap: Nomor referensi transaksi, tanggal & jam cetak, nama produk, kode SKU, ID Batch/Lot, kuantitas mutasi (Masuk/Keluar), jenis transaksi, dan catatan operasional.
+     - Blok legalitas tanda tangan tiga pihak: **Diserahkan Oleh** (Pengirim/Supplier), **Diterima Oleh** (Penerima Divisi), dan **Kepala Gudang / PIC** (dengan nama PIC dan jabatan yang disinkronkan secara dinamis dari pengaturan identitas perusahaan).
+2. **Cadangkan & Unduh Database 1-Klik (.sql & .sqlite)**:
+   - **Unduh Cadangan SQL Script (`GET /api/settings/backup-sql`)**:
+     - Mengekspor seluruh struktur skema tabel (`CREATE TABLE`) dan data record riil (`INSERT INTO`) ke berkas script `.sql` dump standar.
+     - Kompatibel penuh dan siap di-restore langsung ke database MySQL, MariaDB (XAMPP / phpMyAdmin), maupun SQLite.
+   - **Unduh Berkas Database Mentah SQLite (`GET /api/settings/backup-sqlite`)**:
+     - Salinan berkas biner SQLite aktif (`database.sqlite`) untuk arsip fisik harian, kloning lokal instan, atau migrasi server tanpa dependensi dump pihak ketiga.
+   - **Ekspor Snapshot JSON (`GET /api/settings/backup`)**:
+     - Tetap disediakan untuk kebutuhan arsip data aplikasi berbasis JSON.
+3. **Grafik Tren Pergerakan Stok Bulanan Dashboard**:
+   - Pilihan rentang periode dinamis pada grafik arus barang masuk & keluar:
+     - `7 Hari Terakhir` (Harian)
+     - `30 Hari Terakhir` (Harian)
+     - `6 Bulan Terakhir (Bulanan)`
+     - `1 Tahun Terakhir (12 Bulan)`
+   - Backend API (`/api/dashboard/movement-chart?days=6m` & `days=12m`) secara cerdas mengagregasi volume transaksi masuk dan keluar per bulan dengan label bulan & tahun (misal: *May 2026*, *Jun 2026*, dst.).
+   - Dua kartu ringkasan di atas grafik secara adaptif beralih menghitung total akumulasi masuk & keluar selama periode bulanan yang dipilih (*Total Masuk Periode Ini* & *Total Keluar Periode Ini*).
+4. **Profil Perusahaan & Kop Surat Dokumen Dinamis**:
+   - Tab navigasi khusus **"Profil & Kop Surat"** pada menu Pengaturan (`/pengaturan`).
+   - Formulir terstruktur untuk identitas institusi:
+     - Nama Perusahaan / Instansi
+     - Sub-judul / Tagline Kop Surat
+     - Alamat Lengkap Kantor / Gudang
+     - Nomor Telepon & WhatsApp
+     - Email Resmi Instansi
+     - Nama PIC / Kepala Pergudangan (Penanggung Jawab)
+     - Jabatan Resmi PIC
+     - Catatan Kaki Dokumen Cetak (Footer Note)
+   - **Pratinjau Langsung (Live Preview)**:
+     - Visualisasi kop surat dan blok tanda tangan interaktif yang terupdate secara *real-time* saat form diedit.
+   - **Integrasi Terpusat**:
+     - Data tersimpan via `/api/settings/company` (Laravel Cache) dan `localStorage` (`companyProfile`).
+     - Sinkronisasi instan melalui custom event `company-profile-updated` sehingga perubahan langsung merefleksikan cetak Bukti Transaksi di menu Stok dan ekspor PDF resmi laporan stok (`/api/stok/export/pdf`).
+
 ---
 
 ## 6. Daftar API Endpoints
@@ -245,6 +283,10 @@ Menu kustomisasi lengkap yang menerapkan prinsip modern **Auto-Save on Change (T
 | `GET` | `/api/settings` | Mengambil preferensi sistem (tema, bahasa, auto_refresh, format tanggal, dsb.) |
 | `POST` | `/api/settings` | Menyimpan preferensi sistem ke server-side cache secara reaktif |
 | `GET` | `/api/settings/backup` | Mengunduh file JSON snapshot cadangan database gudang |
+| `GET` | `/api/settings/backup-sql` | Mengunduh cadangan database format SQL dump (.sql) 1-klik |
+| `GET` | `/api/settings/backup-sqlite` | Mengunduh salinan berkas biner SQLite mentah (.sqlite) |
+| `GET` | `/api/settings/company` | Mengambil data profil perusahaan & kop surat resmi |
+| `POST` | `/api/settings/company` | Menyimpan perubahan identitas perusahaan & kop surat |
 | `POST` | `/api/settings/clear-cache` | Mengosongkan cache query dan preferensi server |
 
 #### Dashboard
@@ -253,7 +295,7 @@ Menu kustomisasi lengkap yang menerapkan prinsip modern **Auto-Save on Change (T
 | `GET` | `/api/dashboard/stats` | Agregat 5 kartu statistik dan tren data |
 | `GET` | `/api/dashboard/stok-chart` | Distribusi kuantitas stok per kategori |
 | `GET` | `/api/dashboard/low-stock` | Daftar produk dengan stok menipis / kritis |
-| `GET` | `/api/dashboard/movement-chart` | Data pergerakan stok masuk vs keluar mingguan |
+| `GET` | `/api/dashboard/movement-chart` | Data pergerakan stok (harian: days=7, 30; bulanan: days=6m, 12m) |
 | `GET` | `/api/dashboard/recent-activities` | 10 riwayat transaksi mutasi terakhir |
 
 #### Produk, Kategori, & Pemasok
@@ -289,7 +331,7 @@ Menu kustomisasi lengkap yang menerapkan prinsip modern **Auto-Save on Change (T
 | `GET` | `/api/stok/history` | Riwayat log mutasi stok |
 | `GET` | `/api/stok/summary` | Ringkasan akumulasi mutasi |
 | `GET` | `/api/stok/export/excel` | Unduh file Excel laporan stok |
-| `GET` | `/api/stok/export/pdf` | Unduh file PDF resmi laporan stok |
+| `GET` | `/api/stok/export/pdf` | Unduh file PDF resmi laporan stok ber-kop perusahaan & tanda tangan PIC |
 | `GET` | `/api/batch/export/excel` | Unduh file Excel laporan batch |
 
 ---
@@ -383,4 +425,4 @@ php artisan serve
 
 ---
 
-*Dokumen ini diperbarui untuk mencerminkan status implementasi fitur Manajemen Barang v2.5.1 — Oktober 2026.*
+*Dokumen ini diperbarui untuk mencerminkan status implementasi fitur Manajemen Barang v2.6.0 — Oktober 2026.*
