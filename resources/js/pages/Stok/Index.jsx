@@ -246,7 +246,7 @@ export default function StokIndex() {
                         Manajemen Stok
                     </h1>
                     <p className="text-xs text-gray-500 dark:text-gray-400 hidden sm:block">
-                        Riwayat transaksi stok masuk dan keluar
+                        Riwayat transaksi stok masuk, keluar, dan penyesuaian fisik (stock opname)
                     </p>
                 </div>
                 <div className="flex flex-wrap items-center gap-1.5 sm:gap-2">

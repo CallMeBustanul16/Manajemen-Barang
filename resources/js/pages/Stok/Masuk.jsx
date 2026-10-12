@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ArrowLeft, Save, Package, Box, User, Calendar, Plus, Search, AlertTriangle, Info } from 'lucide-react';
+import { ArrowLeft, Save, Package, Box, User, Calendar, Plus, Search, AlertTriangle, Info, Scale } from 'lucide-react';
 import Swal from 'sweetalert2';
 import { produkAPI } from '../../lib/api';
 
@@ -202,13 +202,27 @@ export default function StokBarangMasuk() {
     return (
         <div className="max-w-2xl mx-auto space-y-6">
             {/* Header */}
-            <div className="flex items-center gap-4">
-                <Link to="/stok" className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
-                    <ArrowLeft className="w-5 h-5" />
-                </Link>
-                <div>
-                    <h1 className="text-2xl font-bold text-gray-900 dark:text-white">Stok Masuk</h1>
-                    <p className="text-gray-600 dark:text-gray-400">Pindahkan stok dari gudang ke batch</p>
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div className="flex items-center gap-3">
+                    <Link to="/stok" className="p-2 text-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-colors">
+                        <ArrowLeft className="w-5 h-5" />
+                    </Link>
+                    <div>
+                        <h1 className="text-xl sm:text-2xl font-bold text-gray-900 dark:text-white">Stok Masuk</h1>
+                        <p className="text-xs text-gray-600 dark:text-gray-400">Pindahkan stok dari gudang ke batch</p>
+                    </div>
+                </div>
+                <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl self-start sm:self-auto border border-gray-200/60 dark:border-gray-700/60">
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-600 text-white shadow-xs">
+                        Masuk
+                    </span>
+                    <Link to="/stok/keluar" className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                        Keluar
+                    </Link>
+                    <Link to="/stok/opname" className="px-3 py-1.5 rounded-lg text-xs font-medium text-amber-600 dark:text-amber-400 hover:bg-amber-50 dark:hover:bg-amber-950/30 transition-colors flex items-center gap-1">
+                        <Scale className="w-3.5 h-3.5" />
+                        Opname
+                    </Link>
                 </div>
             </div>
 

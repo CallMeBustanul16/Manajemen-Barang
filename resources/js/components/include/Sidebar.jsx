@@ -1,22 +1,22 @@
 import React from 'react';
-import { NavLink } from 'react-router-dom';
+import { NavLink, useLocation } from 'react-router-dom';
 import Swal from 'sweetalert2';
 import {
-    LayoutDashboard, Package, Tag, Truck, ArrowLeftRight, ClipboardCheck, LayoutGrid, BarChart3, History, LogOut
+    LayoutDashboard, Package, Tag, Truck, ArrowLeftRight, LayoutGrid, BarChart3, History, LogOut
 } from 'lucide-react';
 import { useLanguage } from '../../context/LanguageContext';
 
 export default function Sidebar({ isOpen, onClose, darkMode }) {
     const { t } = useLanguage();
+    const location = useLocation();
 
     const menuItems = [
         { path: '/dashboard', icon: LayoutDashboard, label: t('dashboard') },
-        { path: '/produk', icon: Package, label: t('products') },
-        { path: '/kategori', icon: Tag, label: t('categories') },
-        { path: '/pemasok', icon: Truck, label: t('suppliers') },
-        { path: '/stok', icon: ArrowLeftRight, label: t('stockInOut') },
-        { path: '/stok/opname', icon: ClipboardCheck, label: t('stockOpname') },
-        { path: '/batch', icon: LayoutGrid, label: t('batch') },
+        { path: '/produk', icon: Package, label: t('products'), matchPrefix: '/produk' },
+        { path: '/kategori', icon: Tag, label: t('categories'), matchPrefix: '/kategori' },
+        { path: '/pemasok', icon: Truck, label: t('suppliers'), matchPrefix: '/pemasok' },
+        { path: '/stok', icon: ArrowLeftRight, label: t('stockInOut'), matchPrefix: '/stok' },
+        { path: '/batch', icon: LayoutGrid, label: t('batch'), matchPrefix: '/batch' },
         { path: '/laporan', icon: BarChart3, label: t('reports') },
         { path: '/audit-log', icon: History, label: t('auditLog') },
     ];
@@ -116,13 +116,16 @@ export default function Sidebar({ isOpen, onClose, darkMode }) {
                                 <NavLink
                                     key={item.path}
                                     to={item.path}
-                                    className={({ isActive }) => `
-                                        flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-200
-                                        ${isActive 
-                                            ? 'bg-red-600 text-white font-semibold shadow-lg shadow-red-950/30' 
-                                            : 'text-white/80 hover:text-white hover:bg-white/10'
-                                        }
-                                    `}
+                                    className={({ isActive }) => {
+                                        const isItemActive = isActive || (item.matchPrefix && location.pathname.startsWith(item.matchPrefix));
+                                        return `
+                                            flex items-center gap-3.5 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all duration-200
+                                            ${isItemActive 
+                                                ? 'bg-red-600 text-white font-semibold shadow-lg shadow-red-950/30' 
+                                                : 'text-white/80 hover:text-white hover:bg-white/10'
+                                            }
+                                        `;
+                                    }}
                                 >
                                     <Icon className="w-4 h-4 flex-shrink-0" />
                                     <span>{item.label}</span>

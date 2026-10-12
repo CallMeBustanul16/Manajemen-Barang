@@ -204,7 +204,7 @@ export default function StokOpname() {
     return (
         <div className="max-w-4xl mx-auto space-y-6 p-2 sm:p-4">
             {/* Header */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
                 <div className="flex items-center gap-3">
                     <Link
                         to="/stok"
@@ -221,6 +221,18 @@ export default function StokOpname() {
                             Sinkronkan selisih antara hitungan fisik di gudang dengan catatan sistem
                         </p>
                     </div>
+                </div>
+                <div className="flex items-center gap-1.5 bg-gray-100 dark:bg-gray-800 p-1 rounded-xl self-start sm:self-auto border border-gray-200/60 dark:border-gray-700/60">
+                    <Link to="/stok/masuk" className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                        Stok Masuk
+                    </Link>
+                    <Link to="/stok/keluar" className="px-3 py-1.5 rounded-lg text-xs font-medium text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white transition-colors">
+                        Stok Keluar
+                    </Link>
+                    <span className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-amber-600 text-white shadow-xs flex items-center gap-1">
+                        <Scale className="w-3.5 h-3.5" />
+                        Opname
+                    </span>
                 </div>
             </div>
 
