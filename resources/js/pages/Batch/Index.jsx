@@ -15,6 +15,7 @@ export default function BatchHome() {
     const [filterProduk, setFilterProduk] = useState('');
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
+    const [totalItems, setTotalItems] = useState(0);
     const [refreshing, setRefreshing] = useState(false);
 
     // Tab state (All, Expiring/FEFO, Expired, Empty)
@@ -141,7 +142,7 @@ export default function BatchHome() {
         } finally {
             setLoading(false);
         }
-    }, [currentPage]);
+    }, [currentPage, perPage]);
 
     const handleRefresh = async () => {
         setRefreshing(true);
